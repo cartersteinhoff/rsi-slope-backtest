@@ -19,7 +19,7 @@ export function ParameterControls() {
 			<div className="space-y-1">
 				<div className="flex justify-between">
 					<Label htmlFor="slope-window" className="text-sm">Slope Window</Label>
-					<span className="text-sm text-muted-foreground">{slopeWindow}</span>
+					<span className="text-base text-muted-foreground">{slopeWindow}</span>
 				</div>
 				<Slider
 					id="slope-window"
@@ -33,8 +33,8 @@ export function ParameterControls() {
 
 			<div className="space-y-1">
 				<div className="flex justify-between">
-					<Label htmlFor="pos-threshold" className="text-sm">Positive Threshold</Label>
-					<span className="text-sm text-muted-foreground">
+					<Label htmlFor="pos-threshold" className="text-base">Positive Threshold</Label>
+					<span className="text-base text-muted-foreground">
 						{posThreshold.toFixed(1)}%
 					</span>
 				</div>
@@ -50,8 +50,8 @@ export function ParameterControls() {
 
 			<div className="space-y-1">
 				<div className="flex justify-between">
-					<Label htmlFor="neg-threshold" className="text-sm">Negative Threshold</Label>
-					<span className="text-sm text-muted-foreground">
+					<Label htmlFor="neg-threshold" className="text-base">Negative Threshold</Label>
+					<span className="text-base text-muted-foreground">
 						{negThreshold.toFixed(1)}%
 					</span>
 				</div>
@@ -66,7 +66,7 @@ export function ParameterControls() {
 			</div>
 
 			<div className="space-y-2">
-				<Label className="text-sm">Signal Type</Label>
+				<Label className="text-base">Signal Type</Label>
 				<div className="flex flex-col gap-1">
 					{(["RSI", "Slope", "Both"] as const).map((type) => (
 						<label
@@ -81,7 +81,7 @@ export function ParameterControls() {
 								onChange={() => setSignalType(type)}
 								className="w-3 h-3 accent-blue-500"
 							/>
-							<span className="text-sm">
+							<span className="text-base">
 								{type === "Both" ? "Both (RSI + Slope)" : `${type} Only`}
 							</span>
 						</label>
