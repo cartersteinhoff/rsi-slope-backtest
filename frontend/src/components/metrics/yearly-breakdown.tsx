@@ -20,9 +20,9 @@ export function YearlyBreakdown({ stats }: YearlyBreakdownProps) {
 	const sortedStats = [...stats].sort((a, b) => b.year - a.year);
 
 	return (
-		<Card>
+		<Card className="py-0 gap-2">
 			<CardHeader
-				className="cursor-pointer flex flex-row items-center justify-between"
+				className="cursor-pointer flex flex-row items-center justify-between py-2"
 				onClick={() => setExpanded(!expanded)}
 			>
 				<CardTitle className="text-sm font-medium">Yearly Breakdown</CardTitle>
@@ -33,7 +33,7 @@ export function YearlyBreakdown({ stats }: YearlyBreakdownProps) {
 				)}
 			</CardHeader>
 			{expanded && (
-				<CardContent>
+				<CardContent className="pt-0 pb-0">
 					<div className="flex gap-4 overflow-x-auto pb-2">
 						{sortedStats.map((stat) => (
 							<div

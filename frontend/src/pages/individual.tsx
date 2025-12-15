@@ -53,15 +53,9 @@ export function IndividualPage() {
 
 	return (
 		<div className="space-y-6">
-			<div>
-				<h2 className="text-lg font-semibold mb-1">
-					{selectedBranch.replace(/_daily_trade_log$/, "").replace(/_/g, " ")}
-				</h2>
-				<p className="text-sm text-muted-foreground">
-					{data.trades.length} trades | Window: {slopeWindow} | Threshold:{" "}
-					{posThreshold}% | Mode: {signalType}
-				</p>
-			</div>
+			<p className="text-sm text-muted-foreground">
+				{selectedBranch.replace(/_daily_trade_log$/, "").replace(/_/g, " ")} | {data.trades.length} trades | Window: {slopeWindow} | Threshold: {posThreshold}% | Mode: {signalType}
+			</p>
 
 			<MetricsCards metrics={data.metrics} />
 

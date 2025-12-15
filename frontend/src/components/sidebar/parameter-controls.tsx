@@ -16,55 +16,6 @@ export function ParameterControls() {
 
 	return (
 		<div className="space-y-4">
-			<div className="space-y-1">
-				<div className="flex justify-between">
-					<Label htmlFor="slope-window" className="text-sm">Slope Window</Label>
-					<span className="text-base text-muted-foreground">{slopeWindow}</span>
-				</div>
-				<Slider
-					id="slope-window"
-					min={5}
-					max={30}
-					step={1}
-					value={[slopeWindow]}
-					onValueChange={([value]) => setSlopeWindow(value)}
-				/>
-			</div>
-
-			<div className="space-y-1">
-				<div className="flex justify-between">
-					<Label htmlFor="pos-threshold" className="text-base">Positive Threshold</Label>
-					<span className="text-base text-muted-foreground">
-						{posThreshold.toFixed(1)}%
-					</span>
-				</div>
-				<Slider
-					id="pos-threshold"
-					min={0}
-					max={20}
-					step={0.5}
-					value={[posThreshold]}
-					onValueChange={([value]) => setPosThreshold(value)}
-				/>
-			</div>
-
-			<div className="space-y-1">
-				<div className="flex justify-between">
-					<Label htmlFor="neg-threshold" className="text-base">Negative Threshold</Label>
-					<span className="text-base text-muted-foreground">
-						{negThreshold.toFixed(1)}%
-					</span>
-				</div>
-				<Slider
-					id="neg-threshold"
-					min={-10}
-					max={10}
-					step={0.5}
-					value={[negThreshold]}
-					onValueChange={([value]) => setNegThreshold(value)}
-				/>
-			</div>
-
 			<div className="space-y-2">
 				<Label className="text-base">Signal Type</Label>
 				<div className="flex flex-col gap-1">
@@ -88,6 +39,59 @@ export function ParameterControls() {
 					))}
 				</div>
 			</div>
+
+			{signalType !== "RSI" && (
+				<>
+					<div className="space-y-1">
+						<div className="flex justify-between">
+							<Label htmlFor="slope-window" className="text-sm">Slope Window</Label>
+							<span className="text-base text-muted-foreground">{slopeWindow}</span>
+						</div>
+						<Slider
+							id="slope-window"
+							min={5}
+							max={30}
+							step={1}
+							value={[slopeWindow]}
+							onValueChange={([value]) => setSlopeWindow(value)}
+						/>
+					</div>
+
+					<div className="space-y-1">
+						<div className="flex justify-between">
+							<Label htmlFor="pos-threshold" className="text-base">Positive Threshold</Label>
+							<span className="text-base text-muted-foreground">
+								{posThreshold.toFixed(1)}%
+							</span>
+						</div>
+						<Slider
+							id="pos-threshold"
+							min={0}
+							max={20}
+							step={0.5}
+							value={[posThreshold]}
+							onValueChange={([value]) => setPosThreshold(value)}
+						/>
+					</div>
+
+					<div className="space-y-1">
+						<div className="flex justify-between">
+							<Label htmlFor="neg-threshold" className="text-base">Negative Threshold</Label>
+							<span className="text-base text-muted-foreground">
+								{negThreshold.toFixed(1)}%
+							</span>
+						</div>
+						<Slider
+							id="neg-threshold"
+							min={-10}
+							max={10}
+							step={0.5}
+							value={[negThreshold]}
+							onValueChange={([value]) => setNegThreshold(value)}
+						/>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }
