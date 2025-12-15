@@ -88,7 +88,7 @@ const defaultParameters = {
 	slopeWindow: 15,
 	posThreshold: 5.0,
 	negThreshold: 0.0,
-	signalType: "Both" as SignalType,
+	signalType: "RSI" as SignalType,
 };
 
 export const useParametersStore = create<ParametersState>()(

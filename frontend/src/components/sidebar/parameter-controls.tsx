@@ -68,7 +68,7 @@ export function ParameterControls() {
 			<div className="space-y-2">
 				<Label className="text-sm">Signal Type</Label>
 				<div className="flex flex-col gap-1">
-					{(["Both", "RSI", "Slope"] as const).map((type) => (
+					{(["RSI", "Slope", "Both"] as const).map((type) => (
 						<label
 							key={type}
 							className="flex items-center gap-2 cursor-pointer"
