@@ -1,0 +1,5 @@
+fastapi==0.124.2
+uvicorn[standard]
+pandas==2.3.3
+numpy==2.3.5
+pyarrow==22.0.0
