@@ -12,13 +12,18 @@ import {
 	Activity,
 	Clock,
 	BarChart3,
+	ChevronDown,
+	ChevronUp,
 } from "lucide-react";
+import { useState } from "react";
 
 interface MetricsCardsProps {
 	metrics: PerformanceMetrics;
 }
 
 export function MetricsCards({ metrics }: MetricsCardsProps) {
+	const [expanded, setExpanded] = useState(false);
+
 	const cards = [
 		{
 			title: "Total Return",
@@ -62,22 +67,39 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
 	];
 
 	return (
-		<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-			{cards.map((card) => (
-				<Card key={card.title} className="py-2 gap-0">
-					<CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-0">
-						<CardTitle className="text-sm font-medium text-muted-foreground">
-							{card.title}
-						</CardTitle>
-						<card.icon className="h-3 w-3 text-muted-foreground" />
-					</CardHeader>
-					<CardContent className="px-3 pt-0 pb-1">
-						<div className={`text-lg font-bold ${card.colorClass}`}>
-							{card.value}
-						</div>
-					</CardContent>
-				</Card>
-			))}
-		</div>
+		<Card className="py-0 gap-2">
+			<CardHeader
+				className="cursor-pointer flex flex-row items-center justify-between py-2"
+				onClick={() => setExpanded(!expanded)}
+			>
+				<CardTitle className="text-sm font-medium">Performance Metrics</CardTitle>
+				{expanded ? (
+					<ChevronUp className="h-4 w-4" />
+				) : (
+					<ChevronDown className="h-4 w-4" />
+				)}
+			</CardHeader>
+			{expanded && (
+				<CardContent className="pt-0 pb-2">
+					<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+						{cards.map((card) => (
+							<Card key={card.title} className="py-2 gap-0">
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 py-0">
+									<CardTitle className="text-sm font-medium text-muted-foreground">
+										{card.title}
+									</CardTitle>
+									<card.icon className="h-3 w-3 text-muted-foreground" />
+								</CardHeader>
+								<CardContent className="px-3 pt-0 pb-1">
+									<div className={`text-lg font-bold ${card.colorClass}`}>
+										{card.value}
+									</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+				</CardContent>
+			)}
+		</Card>
 	);
 }

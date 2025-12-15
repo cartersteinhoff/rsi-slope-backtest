@@ -33,7 +33,7 @@ function AppContent() {
 							)
 						}
 					>
-						<TabsList className="mb-6">
+						<TabsList className="mb-3">
 							<TabsTrigger value="individual">Individual Analysis</TabsTrigger>
 							<TabsTrigger value="overview">Overall Results</TabsTrigger>
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>

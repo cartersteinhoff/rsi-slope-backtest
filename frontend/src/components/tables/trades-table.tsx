@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ChevronDown, ChevronUp } from "lucide-react";
 import type { Trade } from "@/types";
 import {
 	formatPercent,
@@ -16,6 +16,7 @@ import {
 	formatShortDate,
 	getReturnColor,
 } from "@/lib/formatters";
+import { useState } from "react";
 
 function exportToCSV(trades: Trade[], filename: string) {
 	const headers = ["Entry Date", "Exit Date", "Entry Price", "Exit Price", "Return %", "Days Held"];
@@ -43,6 +44,8 @@ interface TradesTableProps {
 }
 
 export function TradesTable({ trades }: TradesTableProps) {
+	const [expanded, setExpanded] = useState(false);
+
 	if (trades.length === 0) {
 		return (
 			<Card>
@@ -54,57 +57,72 @@ export function TradesTable({ trades }: TradesTableProps) {
 	}
 
 	return (
-		<Card>
-			<CardHeader className="flex flex-row items-center justify-between">
+		<Card className="py-0 gap-2">
+			<CardHeader
+				className="cursor-pointer flex flex-row items-center justify-between py-2"
+				onClick={() => setExpanded(!expanded)}
+			>
 				<CardTitle className="text-sm font-medium">
 					Trade History ({trades.length} trades)
 				</CardTitle>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => exportToCSV(trades, "trades.csv")}
-					className="h-8"
-				>
-					<Download className="h-4 w-4 mr-1" />
-					Export CSV
-				</Button>
-			</CardHeader>
-			<CardContent>
-				<div className="max-h-96 overflow-y-auto">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Entry Date</TableHead>
-								<TableHead>Exit Date</TableHead>
-								<TableHead className="text-right">Entry Price</TableHead>
-								<TableHead className="text-right">Exit Price</TableHead>
-								<TableHead className="text-right">Return</TableHead>
-								<TableHead className="text-right">Days</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{trades.map((trade, index) => (
-								<TableRow key={`${trade.entry_date}-${index}`}>
-									<TableCell>{formatShortDate(trade.entry_date)}</TableCell>
-									<TableCell>{formatShortDate(trade.exit_date)}</TableCell>
-									<TableCell className="text-right">
-										{formatCurrency(trade.entry_price)}
-									</TableCell>
-									<TableCell className="text-right">
-										{formatCurrency(trade.exit_price)}
-									</TableCell>
-									<TableCell
-										className={`text-right font-medium ${getReturnColor(trade.return_pct)}`}
-									>
-										{formatPercent(trade.return_pct)}
-									</TableCell>
-									<TableCell className="text-right">{trade.days_held}</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+				<div className="flex items-center gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={(e) => {
+							e.stopPropagation();
+							exportToCSV(trades, "trades.csv");
+						}}
+						className="h-7"
+					>
+						<Download className="h-4 w-4 mr-1" />
+						Export CSV
+					</Button>
+					{expanded ? (
+						<ChevronUp className="h-4 w-4" />
+					) : (
+						<ChevronDown className="h-4 w-4" />
+					)}
 				</div>
-			</CardContent>
+			</CardHeader>
+			{expanded && (
+				<CardContent className="pt-0 pb-0">
+					<div className="max-h-96 overflow-y-auto">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Entry Date</TableHead>
+									<TableHead>Exit Date</TableHead>
+									<TableHead className="text-right">Entry Price</TableHead>
+									<TableHead className="text-right">Exit Price</TableHead>
+									<TableHead className="text-right">Return</TableHead>
+									<TableHead className="text-right">Days</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{trades.map((trade, index) => (
+									<TableRow key={`${trade.entry_date}-${index}`}>
+										<TableCell>{formatShortDate(trade.entry_date)}</TableCell>
+										<TableCell>{formatShortDate(trade.exit_date)}</TableCell>
+										<TableCell className="text-right">
+											{formatCurrency(trade.entry_price)}
+										</TableCell>
+										<TableCell className="text-right">
+											{formatCurrency(trade.exit_price)}
+										</TableCell>
+										<TableCell
+											className={`text-right font-medium ${getReturnColor(trade.return_pct)}`}
+										>
+											{formatPercent(trade.return_pct)}
+										</TableCell>
+										<TableCell className="text-right">{trade.days_held}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				</CardContent>
+			)}
 		</Card>
 	);
 }
