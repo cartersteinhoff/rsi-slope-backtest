@@ -10,7 +10,7 @@ export function Sidebar() {
 			<div className="flex-1 overflow-y-auto p-4">
 				<div className="flex items-center gap-2 mb-4">
 					<TrendingUp className="h-6 w-6 text-primary" />
-					<h1 className="text-lg font-semibold leading-tight">Advanced RSI + Slope Filter Backtesting System</h1>
+					<h1 className="text-base font-semibold leading-tight">Advanced RSI + Slope Filter Backtesting System</h1>
 				</div>
 
 				<div className="space-y-4">
