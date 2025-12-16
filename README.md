@@ -122,9 +122,20 @@ The frontend connects to the backend at `http://localhost:8000` by default. This
 
 ## Deployment
 
-The project is configured for Railway deployment:
-- **Backend**: Uses the Procfile with Uvicorn
-- **Frontend**: Builds with Vite and serves with `serve`
+This is a **monorepo** with separate deployment configurations for the frontend and backend:
+
+### Frontend → Vercel
+The frontend is deployed to [Vercel](https://vercel.com). Configuration is in `vercel.json`:
+- Builds from the `frontend/` directory
+- Runs `npm install && npm run build`
+- Serves the static `dist/` output
+
+### Backend → Railway
+The backend is deployed to [Railway](https://railway.app). Configuration files:
+- `backend/railway.toml` - Railway-specific build and deploy settings
+- `backend/Procfile` - Defines the web process command
+
+When setting up on Railway, point the service to the `backend/` directory as the root.
 
 ## License
 
