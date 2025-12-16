@@ -29,7 +29,7 @@ const getChartColors = (isDark: boolean) => ({
 	baseLineColor: isDark ? "#52525b" : "#a1a1aa",
 });
 
-export function PriceChart({ data, height = 500 }: PriceChartProps) {
+export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<IChartApi | null>(null);
 	const markerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -41,6 +41,11 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 	const [isDark, setIsDark] = useState(() =>
 		typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : true
 	);
+	const [chartHeight, setChartHeight] = useState(initialHeight);
+	const [overviewHeight, setOverviewHeight] = useState(100);
+	const isResizing = useRef<false | "top" | "bottom" | "overview">(false);
+	const resizeStartY = useRef(0);
+	const resizeStartHeight = useRef(0);
 
 	// Helper to format date for custom range display
 	const formatDate = useCallback((timestamp: number) => {
@@ -69,6 +74,57 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 
 		observer.observe(document.documentElement, { attributes: true });
 		return () => observer.disconnect();
+	}, []);
+
+	// Vertical resize handlers (TradingView-style edge dragging)
+	const handleResizeMouseDown = useCallback((e: React.MouseEvent, edge: "top" | "bottom" | "overview") => {
+		e.preventDefault();
+		isResizing.current = edge;
+		resizeStartY.current = e.clientY;
+		resizeStartHeight.current = edge === "overview" ? overviewHeight : chartHeight;
+		document.body.style.cursor = "ns-resize";
+		document.body.style.userSelect = "none";
+	}, [chartHeight, overviewHeight]);
+
+	const handleResizeDoubleClick = useCallback((target: "chart" | "overview") => {
+		if (target === "overview") {
+			setOverviewHeight(100);
+		} else {
+			setChartHeight(initialHeight);
+		}
+	}, [initialHeight]);
+
+	useEffect(() => {
+		const handleResizeMouseMove = (e: MouseEvent) => {
+			if (!isResizing.current) return;
+			const deltaY = e.clientY - resizeStartY.current;
+			const edge = isResizing.current;
+
+			if (edge === "overview") {
+				const newHeight = Math.max(30, Math.min(200, resizeStartHeight.current + deltaY));
+				setOverviewHeight(newHeight);
+			} else {
+				// If dragging from top, invert the delta
+				const adjustedDelta = edge === "top" ? -deltaY : deltaY;
+				const newHeight = Math.max(200, Math.min(1000, resizeStartHeight.current + adjustedDelta));
+				setChartHeight(newHeight);
+			}
+		};
+
+		const handleResizeMouseUp = () => {
+			if (isResizing.current) {
+				isResizing.current = false;
+				document.body.style.cursor = "";
+				document.body.style.userSelect = "";
+			}
+		};
+
+		window.addEventListener("mousemove", handleResizeMouseMove);
+		window.addEventListener("mouseup", handleResizeMouseUp);
+		return () => {
+			window.removeEventListener("mousemove", handleResizeMouseMove);
+			window.removeEventListener("mouseup", handleResizeMouseUp);
+		};
 	}, []);
 
 	const setTimeRange = (range: RangeOption) => {
@@ -261,7 +317,7 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 
 		const colors = getChartColors(isDark);
 		const chart = createChart(chartContainerRef.current, {
-			height,
+			height: chartHeight,
 			layout: {
 				background: { type: ColorType.Solid, color: colors.background },
 				textColor: colors.textColor,
@@ -315,7 +371,14 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 			areaSeriesRef.current = [];
 			markersRef.current = null;
 		};
-	}, [height, data.candles.length, isDark, updateSelectionFromChart]);
+	}, [initialHeight, data.candles.length, isDark, updateSelectionFromChart]);
+
+	// Update chart height when resizing
+	useEffect(() => {
+		if (chartRef.current) {
+			chartRef.current.applyOptions({ height: chartHeight });
+		}
+	}, [chartHeight]);
 
 	// Data updates - runs when data changes
 	useEffect(() => {
@@ -435,7 +498,7 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 
 		const colors = getChartColors(isDark);
 		const overviewChart = createChart(overviewContainerRef.current, {
-			height: 60,
+			height: 100,
 			layout: {
 				background: { type: ColorType.Solid, color: "transparent" },
 				textColor: colors.textColor,
@@ -480,6 +543,13 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 		};
 	}, [isDark, updateSelectionFromChart]);
 
+	// Update overview chart height when resizing
+	useEffect(() => {
+		if (overviewChartRef.current) {
+			overviewChartRef.current.applyOptions({ height: overviewHeight });
+		}
+	}, [overviewHeight]);
+
 	// Overview chart data updates
 	useEffect(() => {
 		if (!overviewChartRef.current || !data.candles.length) return;
@@ -519,6 +589,7 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 		<div className="space-y-2">
 			<div className="flex items-center justify-between">
 				<div className="flex gap-1 items-center">
+					<span className="text-sm font-medium mr-2">Price Chart</span>
 					{rangeOptions.map((range) => (
 						<Button
 							key={range}
@@ -555,17 +626,32 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 					</div>
 				</div>
 			</div>
-			<div
-				ref={chartContainerRef}
-				className="w-full rounded-lg border bg-card"
-				style={{ minHeight: height }}
-			/>
+			<div className="relative">
+				{/* Top resize edge */}
+				<div
+					className="absolute -top-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-10 transition-colors"
+					onMouseDown={(e) => handleResizeMouseDown(e, "top")}
+					onDoubleClick={() => handleResizeDoubleClick("chart")}
+				/>
+				<div
+					ref={chartContainerRef}
+					className="w-full rounded-lg border bg-card"
+					style={{ minHeight: chartHeight }}
+				/>
+				{/* Bottom resize edge */}
+				<div
+					className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-10 transition-colors"
+					onMouseDown={(e) => handleResizeMouseDown(e, "bottom")}
+					onDoubleClick={() => handleResizeDoubleClick("chart")}
+				/>
+			</div>
 			{/* Overview Navigator */}
-			<div
-				className="relative bg-muted/30 rounded-lg overflow-hidden cursor-pointer"
-				onClick={handleOverviewClick}
-			>
-				<div ref={overviewContainerRef} className="w-full" style={{ height: 60 }} />
+			<div className="relative">
+				<div
+					className="relative bg-muted/30 rounded-lg overflow-hidden cursor-pointer"
+					onClick={handleOverviewClick}
+				>
+					<div ref={overviewContainerRef} className="w-full" style={{ height: overviewHeight }} />
 				{/* Selection overlay */}
 				<div className="absolute inset-0 pointer-events-none z-10">
 					{/* Left dimmed area */}
@@ -613,6 +699,16 @@ export function PriceChart({ data, height = 500 }: PriceChartProps) {
 						/>
 					</div>
 				</div>
+				</div>
+				{/* Bottom resize edge for overview */}
+				<div
+					className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-10 transition-colors"
+					onMouseDown={(e) => {
+						e.stopPropagation();
+						handleResizeMouseDown(e, "overview");
+					}}
+					onDoubleClick={() => handleResizeDoubleClick("overview")}
+				/>
 			</div>
 		</div>
 	);
