@@ -50,12 +50,19 @@ export interface ChartMarker {
 	return_pct?: number;
 }
 
+export interface RSIDataPoint {
+	time: number;
+	value: number;
+}
+
 export interface ChartData {
 	candles: Candle[];
 	slope_segments: SlopeSegment[];
 	entries: ChartMarker[];
 	exits: ChartMarker[];
 	rsi_triggers: ChartMarker[];
+	rsi_data: RSIDataPoint[];
+	rsi_threshold: number;
 }
 
 export interface IndividualAnalysisResponse {

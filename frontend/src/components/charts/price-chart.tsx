@@ -42,10 +42,16 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 		typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : true
 	);
 	const [chartHeight, setChartHeight] = useState(initialHeight);
+	const [rsiHeight, setRsiHeight] = useState(120);
 	const [overviewHeight, setOverviewHeight] = useState(100);
-	const isResizing = useRef<false | "top" | "bottom" | "overview">(false);
+	const isResizing = useRef<false | "top" | "bottom" | "rsi" | "overview">(false);
 	const resizeStartY = useRef(0);
 	const resizeStartHeight = useRef(0);
+
+	// RSI chart refs
+	const rsiContainerRef = useRef<HTMLDivElement>(null);
+	const rsiChartRef = useRef<IChartApi | null>(null);
+	const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
 	// Helper to format date for custom range display
 	const formatDate = useCallback((timestamp: number) => {
@@ -77,18 +83,26 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 	}, []);
 
 	// Vertical resize handlers (TradingView-style edge dragging)
-	const handleResizeMouseDown = useCallback((e: React.MouseEvent, edge: "top" | "bottom" | "overview") => {
+	const handleResizeMouseDown = useCallback((e: React.MouseEvent, edge: "top" | "bottom" | "rsi" | "overview") => {
 		e.preventDefault();
 		isResizing.current = edge;
 		resizeStartY.current = e.clientY;
-		resizeStartHeight.current = edge === "overview" ? overviewHeight : chartHeight;
+		if (edge === "overview") {
+			resizeStartHeight.current = overviewHeight;
+		} else if (edge === "rsi") {
+			resizeStartHeight.current = rsiHeight;
+		} else {
+			resizeStartHeight.current = chartHeight;
+		}
 		document.body.style.cursor = "ns-resize";
 		document.body.style.userSelect = "none";
-	}, [chartHeight, overviewHeight]);
+	}, [chartHeight, rsiHeight, overviewHeight]);
 
-	const handleResizeDoubleClick = useCallback((target: "chart" | "overview") => {
+	const handleResizeDoubleClick = useCallback((target: "chart" | "rsi" | "overview") => {
 		if (target === "overview") {
 			setOverviewHeight(100);
+		} else if (target === "rsi") {
+			setRsiHeight(120);
 		} else {
 			setChartHeight(initialHeight);
 		}
@@ -103,6 +117,9 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 			if (edge === "overview") {
 				const newHeight = Math.max(30, Math.min(200, resizeStartHeight.current + deltaY));
 				setOverviewHeight(newHeight);
+			} else if (edge === "rsi") {
+				const newHeight = Math.max(60, Math.min(300, resizeStartHeight.current + deltaY));
+				setRsiHeight(newHeight);
 			} else {
 				// If dragging from top, invert the delta
 				const adjustedDelta = edge === "top" ? -deltaY : deltaY;
@@ -583,6 +600,121 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 		setTimeout(() => updateSelectionFromChart(), 50);
 	}, [data, isDark, updateSelectionFromChart]);
 
+	// RSI chart initialization
+	useEffect(() => {
+		if (!rsiContainerRef.current) return;
+
+		const colors = getChartColors(isDark);
+		const rsiChart = createChart(rsiContainerRef.current, {
+			height: rsiHeight,
+			layout: {
+				background: { type: ColorType.Solid, color: colors.background },
+				textColor: colors.textColor,
+				attributionLogo: false,
+			},
+			grid: {
+				vertLines: { color: colors.gridColor },
+				horzLines: { color: colors.gridColor },
+			},
+			rightPriceScale: {
+				borderVisible: false,
+				scaleMargins: { top: 0.1, bottom: 0.1 },
+			},
+			timeScale: {
+				borderVisible: false,
+				visible: false,
+			},
+			crosshair: {
+				mode: CrosshairMode.Normal,
+			},
+		});
+
+		rsiChartRef.current = rsiChart;
+
+		// Handle resize
+		const handleResize = () => {
+			if (rsiContainerRef.current) {
+				rsiChart.applyOptions({ width: rsiContainerRef.current.clientWidth });
+			}
+		};
+
+		window.addEventListener("resize", handleResize);
+		handleResize();
+
+		return () => {
+			window.removeEventListener("resize", handleResize);
+			rsiChart.remove();
+			rsiChartRef.current = null;
+			rsiSeriesRef.current = null;
+		};
+	}, [isDark]);
+
+	// Update RSI chart height when resizing
+	useEffect(() => {
+		if (rsiChartRef.current) {
+			rsiChartRef.current.applyOptions({ height: rsiHeight });
+		}
+	}, [rsiHeight]);
+
+	// RSI chart data updates
+	useEffect(() => {
+		if (!rsiChartRef.current || !data.rsi_data?.length) return;
+
+		const chart = rsiChartRef.current;
+
+		// Remove existing series
+		if (rsiSeriesRef.current) {
+			chart.removeSeries(rsiSeriesRef.current);
+			rsiSeriesRef.current = null;
+		}
+
+		// Create RSI line series
+		const rsiSeries = chart.addSeries(LineSeries, {
+			color: "#3b82f6",
+			lineWidth: 2,
+			priceLineVisible: false,
+			lastValueVisible: true,
+		});
+
+		const rsiLineData = data.rsi_data.map((r) => ({ time: r.time as Time, value: r.value }));
+		rsiSeries.setData(rsiLineData);
+		rsiSeriesRef.current = rsiSeries;
+
+		// Add threshold line using createPriceLine
+		rsiSeries.createPriceLine({
+			price: data.rsi_threshold,
+			color: "#a1a1aa",
+			lineWidth: 1,
+			lineStyle: 2, // Dashed
+			axisLabelVisible: true,
+			title: "",
+		});
+
+		chart.timeScale().fitContent();
+	}, [data, isDark]);
+
+	// Sync RSI chart time scale with main chart
+	useEffect(() => {
+		if (!chartRef.current || !rsiChartRef.current) return;
+
+		const mainTimeScale = chartRef.current.timeScale();
+		const rsiTimeScale = rsiChartRef.current.timeScale();
+
+		const syncRsiToMain = () => {
+			const logicalRange = mainTimeScale.getVisibleLogicalRange();
+			if (logicalRange) {
+				rsiTimeScale.setVisibleLogicalRange(logicalRange);
+			}
+		};
+
+		mainTimeScale.subscribeVisibleLogicalRangeChange(syncRsiToMain);
+		syncRsiToMain();
+
+		return () => {
+			mainTimeScale.unsubscribeVisibleLogicalRangeChange(syncRsiToMain);
+		};
+	}, [data]);
+
 	const rangeOptions: RangeOption[] = ["7D", "1M", "3M", "6M", "1Y", "2Y", "3Y", "4Y", "5Y", "ALL"];
 
 	return (
@@ -645,6 +777,26 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 					onDoubleClick={() => handleResizeDoubleClick("chart")}
 				/>
 			</div>
+			{/* RSI Indicator Panel */}
+			{data.rsi_data?.length > 0 && (
+				<div className="relative">
+					<div className="flex items-center gap-2 mb-1">
+						<span className="text-sm font-medium">RSI</span>
+						<span className="text-xs text-muted-foreground">Threshold: {data.rsi_threshold}</span>
+					</div>
+					<div
+						ref={rsiContainerRef}
+						className="w-full rounded-lg border bg-card"
+						style={{ minHeight: rsiHeight }}
+					/>
+					{/* Bottom resize edge */}
+					<div
+						className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-10 transition-colors"
+						onMouseDown={(e) => handleResizeMouseDown(e, "rsi")}
+						onDoubleClick={() => handleResizeDoubleClick("rsi")}
+					/>
+				</div>
+			)}
 			{/* Overview Navigator */}
 			<div className="relative">
 				<div

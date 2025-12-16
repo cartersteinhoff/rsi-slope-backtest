@@ -25,6 +25,7 @@ from models.schemas import (
     Candle,
     SlopeSegment,
     ChartMarker,
+    RSIDataPoint,
     BranchOverview
 )
 
@@ -46,16 +47,30 @@ def trades_to_schema(trades: list[TradeSignal]) -> list[Trade]:
     ]
 
 
+def extract_rsi_threshold_from_branch(branch_name: str) -> float:
+    """Extract RSI threshold from branch name.
+
+    Branch format: {WINDOW}D_RSI_{TICKER}_LT{THRESHOLD}_daily_trade_log
+    Example: 14D_RSI_AAPL_LT30_daily_trade_log -> 30
+    """
+    match = re.search(r"_LT(\d+)_", branch_name)
+    if match:
+        return float(match.group(1))
+    return 30.0  # Default
+
+
 def build_chart_data(
     merged_data: pd.DataFrame,
     trades: list[TradeSignal],
-    pos_threshold: float
+    pos_threshold: float,
+    branch_name: str = ""
 ) -> ChartData:
     """Build chart data for Lightweight Charts.
 
-    Returns candles, slope segments, entry/exit markers, and RSI triggers.
+    Returns candles, slope segments, entry/exit markers, RSI triggers, and RSI data.
     """
     df = merged_data.copy()
+    rsi_threshold = extract_rsi_threshold_from_branch(branch_name)
 
     # Limit to last 5 years for performance
     if len(df) > 0:
@@ -142,12 +157,24 @@ def build_chart_data(
                 ))
             prev_active = row['Active']
 
+    # Build RSI data points
+    rsi_data = []
+    if 'RSI' in df.columns:
+        for _, row in df.iterrows():
+            if pd.notna(row['RSI']):
+                rsi_data.append(RSIDataPoint(
+                    time=int(row['Date'].timestamp()),
+                    value=float(row['RSI'])
+                ))
+
     return ChartData(
         candles=candles,
         slope_segments=slope_segments,
         entries=entries,
         exits=exits,
-        rsi_triggers=rsi_triggers
+        rsi_triggers=rsi_triggers,
+        rsi_data=rsi_data,
+        rsi_threshold=rsi_threshold
     )
 
 
@@ -202,7 +229,7 @@ def get_individual_analysis(
     yearly_stats = compute_yearly_stats(result.trades)
 
     # Build chart data
-    chart_data = build_chart_data(result.merged_data, result.trades, pos_threshold)
+    chart_data = build_chart_data(result.merged_data, result.trades, pos_threshold, branch)
 
     # Convert to response schema
     if metrics:

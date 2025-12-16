@@ -53,12 +53,19 @@ class ChartMarker(BaseModel):
     return_pct: Optional[float] = None
 
 
+class RSIDataPoint(BaseModel):
+    time: int
+    value: float
+
+
 class ChartData(BaseModel):
     candles: list[Candle]
     slope_segments: list[SlopeSegment]
     entries: list[ChartMarker]
     exits: list[ChartMarker]
     rsi_triggers: list[ChartMarker]
+    rsi_data: list[RSIDataPoint]
+    rsi_threshold: float
 
 
 class IndividualAnalysisResponse(BaseModel):
