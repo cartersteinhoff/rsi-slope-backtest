@@ -78,14 +78,14 @@ def build_chart_data(
         start_date = last_date - pd.DateOffset(years=5)
         df = df[df['Date'] >= start_date]
 
-    # Build candles (using Close as OHLC for line chart, or actual OHLC if available)
+    # Build candles with real OHLC data for candlestick charts
     candles = []
     for _, row in df.iterrows():
         candles.append(Candle(
             time=int(row['Date'].timestamp()),
-            open=float(row['Close']),
-            high=float(row['Close']),
-            low=float(row['Close']),
+            open=float(row['Open']) if 'Open' in row and pd.notna(row['Open']) else float(row['Close']),
+            high=float(row['High']) if 'High' in row and pd.notna(row['High']) else float(row['Close']),
+            low=float(row['Low']) if 'Low' in row and pd.notna(row['Low']) else float(row['Close']),
             close=float(row['Close'])
         ))
 
@@ -137,12 +137,14 @@ def build_chart_data(
         entries.append(ChartMarker(
             time=int(trade.entry_date.timestamp()),
             price=trade.entry_price,
-            return_pct=None
+            return_pct=trade.return_pct,  # Include return at entry for label
+            entry_type=trade.entry_type
         ))
         exits.append(ChartMarker(
             time=int(trade.exit_date.timestamp()),
             price=trade.exit_price,
-            return_pct=trade.return_pct
+            return_pct=trade.return_pct,
+            entry_type=trade.entry_type
         ))
 
     # Build RSI trigger markers (when Active transitions from 0 to 1)

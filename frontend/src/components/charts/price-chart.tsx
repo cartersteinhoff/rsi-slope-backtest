@@ -8,6 +8,7 @@ import {
 	ColorType,
 	LineSeries,
 	AreaSeries,
+	CandlestickSeries,
 	createSeriesMarkers,
 	CrosshairMode,
 } from "lightweight-charts";
@@ -32,6 +33,7 @@ const getChartColors = (isDark: boolean) => ({
 export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<IChartApi | null>(null);
+	const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 	const markerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 	const lineSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
 	const areaSeriesRef = useRef<ISeriesApi<"Area">[]>([]);
@@ -383,6 +385,7 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 			window.removeEventListener("resize", handleResize);
 			chart.remove();
 			chartRef.current = null;
+			candlestickSeriesRef.current = null;
 			markerSeriesRef.current = null;
 			lineSeriesRef.current = [];
 			areaSeriesRef.current = [];
@@ -404,6 +407,10 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 		const chart = chartRef.current;
 
 		// Remove existing series
+		if (candlestickSeriesRef.current) {
+			chart.removeSeries(candlestickSeriesRef.current);
+			candlestickSeriesRef.current = null;
+		}
 		if (markerSeriesRef.current) {
 			chart.removeSeries(markerSeriesRef.current);
 			markerSeriesRef.current = null;
@@ -418,22 +425,44 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 		areaSeriesRef.current = [];
 		markersRef.current = null;
 
-		// Create base line series (spans all data, hosts markers, visible as fallback)
 		const colors = getChartColors(isDark);
+
+		// Create candlestick series for OHLC data
+		const candlestickSeries = chart.addSeries(CandlestickSeries, {
+			upColor: "#22c55e",
+			downColor: "#ef4444",
+			borderUpColor: "#22c55e",
+			borderDownColor: "#ef4444",
+			wickUpColor: "#22c55e",
+			wickDownColor: "#ef4444",
+			priceLineVisible: false,
+			lastValueVisible: true,
+		});
+		const candleData = data.candles.map((c) => ({
+			time: c.time as Time,
+			open: c.open,
+			high: c.high,
+			low: c.low,
+			close: c.close,
+		}));
+		candlestickSeries.setData(candleData);
+		candlestickSeriesRef.current = candlestickSeries;
+
+		// Create invisible line series for markers (markers need a line series)
 		const markerSeries = chart.addSeries(LineSeries, {
-			color: colors.baseLineColor,
-			lineWidth: 2,
+			color: "transparent",
+			lineWidth: 0,
 			priceLineVisible: false,
 			lastValueVisible: false,
+			crosshairMarkerVisible: false,
 		});
 		const fullLineData = data.candles.map((c) => ({ time: c.time as Time, value: c.close }));
 		markerSeries.setData(fullLineData);
 		markerSeriesRef.current = markerSeries;
 
-		// Create colored line segments for each slope segment (drawn on top of base line)
+		// Create colored line segments for slope overlay
 		if (data.slope_segments && data.slope_segments.length > 0) {
 			for (const segment of data.slope_segments) {
-				// Get candles within this segment, plus one before and after for continuity
 				const segmentStartIdx = data.candles.findIndex((c) => c.time >= segment.start);
 				const segmentEndIdx = data.candles.findIndex((c) => c.time > segment.end);
 
@@ -443,24 +472,7 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 				const segmentCandles = data.candles.slice(startIdx, endIdx);
 				if (segmentCandles.length < 2) continue;
 
-				// Create area series for background fill
-				const areaColor = segment.color === "green" ? "rgba(34, 197, 94, 0.15)" : "rgba(156, 163, 175, 0.15)";
-				const areaSeries = chart.addSeries(AreaSeries, {
-					topColor: areaColor,
-					bottomColor: "rgba(0, 0, 0, 0)",
-					lineColor: "rgba(0, 0, 0, 0)",
-					lineWidth: 1,
-					priceLineVisible: false,
-					lastValueVisible: false,
-					crosshairMarkerVisible: false,
-				});
-				const areaData = segmentCandles
-					.filter((c) => c.time >= segment.start && c.time <= segment.end)
-					.map((c) => ({ time: c.time as Time, value: c.close }));
-				areaSeries.setData(areaData);
-				areaSeriesRef.current.push(areaSeries);
-
-				// Create line series with segment color
+				// Create line series with segment color (slope indicator line)
 				const lineColor = segment.color === "green" ? "#22c55e" : "#a1a1aa";
 				const lineSeries = chart.addSeries(LineSeries, {
 					color: lineColor,
@@ -475,15 +487,23 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 			}
 		}
 
-		// Build markers
+		// Build markers with TradingView-style labels
 		const markers = [
-			...data.entries.map((e) => ({
-				time: e.time as Time,
-				position: "belowBar" as const,
-				color: "#22c55e",
-				shape: "arrowUp" as const,
-				text: "Better",
-			})),
+			...data.entries.map((e) => {
+				const returnStr = e.return_pct !== undefined
+					? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(1)}%`
+					: "";
+				const label = e.entry_type === "RSI"
+					? `RSI ${returnStr}`
+					: `${returnStr} Slope`;
+				return {
+					time: e.time as Time,
+					position: "belowBar" as const,
+					color: e.entry_type === "RSI" ? "#8b5cf6" : "#f59e0b",
+					shape: "arrowUp" as const,
+					text: label,
+				};
+			}),
 			...data.exits.map((e) => ({
 				time: e.time as Time,
 				position: "aboveBar" as const,
@@ -491,16 +511,9 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 				shape: "arrowDown" as const,
 				text: e.return_pct ? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(1)}%` : "Exit",
 			})),
-			...data.rsi_triggers.map((t) => ({
-				time: t.time as Time,
-				position: "belowBar" as const,
-				color: "#8b5cf6",
-				shape: "circle" as const,
-				text: "",
-			})),
 		].sort((a, b) => (a.time as number) - (b.time as number));
 
-		// Create markers on base line series
+		// Create markers on the invisible line series
 		if (markerSeries && markers.length > 0) {
 			markersRef.current = createSeriesMarkers(markerSeries, markers);
 		}
@@ -741,8 +754,12 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 				</div>
 				<div className="flex items-center gap-6 text-sm text-muted-foreground">
 					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#22c55e]">▲</span>
-						<span>Entry</span>
+						<span className="text-lg text-[#8b5cf6]">▲</span>
+						<span>RSI Entry</span>
+					</div>
+					<div className="flex items-center gap-1.5">
+						<span className="text-lg text-[#f59e0b]">▲</span>
+						<span>Slope Entry</span>
 					</div>
 					<div className="flex items-center gap-1.5">
 						<span className="text-lg text-[#22c55e]">▼</span>
@@ -751,10 +768,6 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 					<div className="flex items-center gap-1.5">
 						<span className="text-lg text-[#ef4444]">▼</span>
 						<span>Loss</span>
-					</div>
-					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#8b5cf6]">●</span>
-						<span>RSI</span>
 					</div>
 				</div>
 			</div>

@@ -53,11 +53,11 @@ export function IndividualPage() {
 
 	return (
 		<div className="space-y-6">
+			<PriceChart data={data.chart_data} />
+
 			<MetricsCards metrics={data.metrics} />
 
 			<YearlyBreakdown stats={data.yearly_stats} />
-
-			<PriceChart data={data.chart_data} />
 
 			<TradesTable trades={data.trades} />
 		</div>

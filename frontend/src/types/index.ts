@@ -48,6 +48,7 @@ export interface ChartMarker {
 	time: number;
 	price: number;
 	return_pct?: number;
+	entry_type?: "RSI" | "Slope";
 }
 
 export interface RSIDataPoint {

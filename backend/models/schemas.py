@@ -51,6 +51,7 @@ class ChartMarker(BaseModel):
     time: int
     price: float
     return_pct: Optional[float] = None
+    entry_type: Optional[str] = None  # "RSI" or "Slope"
 
 
 class RSIDataPoint(BaseModel):

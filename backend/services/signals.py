@@ -22,6 +22,7 @@ class TradeSignal:
     exit_price: float
     return_pct: float
     days_held: int
+    entry_type: str = "Slope"  # "RSI" or "Slope"
 
 
 @dataclass
@@ -51,10 +52,10 @@ def apply_slope_filter(
     Returns:
         SignalResult with merged data and list of trades
     """
-    # Merge branch data with ticker data
+    # Merge branch data with ticker data (include OHLC for candlestick charts)
     merged = pd.merge(
         branch_data,
-        ticker_data[['Date', 'Close', 'Volume']],
+        ticker_data[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']],
         on='Date',
         how='left'
     )
@@ -81,6 +82,8 @@ def apply_slope_filter(
     in_position = False
     entry_price = 0.0
     entry_date = None
+    entry_type = "Slope"
+    rsi_just_activated = False  # Track if RSI activated this bar
 
     trades: list[TradeSignal] = []
 
@@ -95,8 +98,10 @@ def apply_slope_filter(
             continue
 
         # Flag logic: Flag turns to 1 when RSI gets activated
+        rsi_just_activated = False
         if active == 1 and flag == 0:
             flag = 1
+            rsi_just_activated = True
 
         trade_completed = False
         exit_price = 0.0
@@ -108,6 +113,9 @@ def apply_slope_filter(
                 in_position = True
                 entry_price = close
                 entry_date = date
+                # If RSI just activated this bar AND slope is already good, it's RSI-triggered
+                # Otherwise slope was the final trigger
+                entry_type = "RSI" if rsi_just_activated else "Slope"
                 entry_signals[i] = 1
                 in_trades[i] = 1
             elif in_position:
@@ -127,6 +135,7 @@ def apply_slope_filter(
                 in_position = True
                 entry_price = close
                 entry_date = date
+                entry_type = "RSI"
                 entry_signals[i] = 1
                 in_trades[i] = 1
             elif in_position:
@@ -145,6 +154,7 @@ def apply_slope_filter(
                 in_position = True
                 entry_price = close
                 entry_date = date
+                entry_type = "Slope"
                 entry_signals[i] = 1
                 in_trades[i] = 1
             elif in_position:
@@ -167,7 +177,8 @@ def apply_slope_filter(
                 entry_price=entry_price,
                 exit_price=exit_price,
                 return_pct=trade_return,
-                days_held=days_held
+                days_held=days_held,
+                entry_type=entry_type
             ))
 
         flags[i] = flag
