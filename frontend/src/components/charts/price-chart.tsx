@@ -425,8 +425,6 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 		areaSeriesRef.current = [];
 		markersRef.current = null;
 
-		const colors = getChartColors(isDark);
-
 		// Create candlestick series for OHLC data
 		const candlestickSeries = chart.addSeries(CandlestickSeries, {
 			upColor: "#22c55e",
@@ -451,7 +449,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 		// Create invisible line series for markers (markers need a line series)
 		const markerSeries = chart.addSeries(LineSeries, {
 			color: "transparent",
-			lineWidth: 0,
+			lineWidth: 1,
 			priceLineVisible: false,
 			lastValueVisible: false,
 			crosshairMarkerVisible: false,
