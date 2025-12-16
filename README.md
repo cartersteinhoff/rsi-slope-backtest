@@ -1,5 +1,7 @@
 # RSI + Slope Filter Backtesting System
 
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
+
 A full-stack application for backtesting RSI (Relative Strength Index) trading strategies combined with slope-based filters. Analyze historical stock data with configurable parameters and visualize trading signals, performance metrics, and trade history.
 
 ## Features
