@@ -635,7 +635,10 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 			},
 			timeScale: {
 				borderVisible: false,
-				visible: false,
+				visible: true,
+				timeVisible: false,
+				fixLeftEdge: true,
+				fixRightEdge: true,
 			},
 			crosshair: {
 				mode: CrosshairMode.Normal,
@@ -810,7 +813,8 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 					/>
 				</div>
 			)}
-			{/* Overview Navigator */}
+			{/* Overview Navigator - hidden for now */}
+			{false && (
 			<div className="relative">
 				<div
 					className="relative bg-muted/30 rounded-lg overflow-hidden cursor-pointer"
@@ -875,6 +879,7 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 					onDoubleClick={() => handleResizeDoubleClick("overview")}
 				/>
 			</div>
+			)}
 		</div>
 	);
 }
