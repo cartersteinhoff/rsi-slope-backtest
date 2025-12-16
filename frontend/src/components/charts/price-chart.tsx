@@ -30,7 +30,7 @@ const getChartColors = (isDark: boolean) => ({
 	baseLineColor: isDark ? "#52525b" : "#a1a1aa",
 });
 
-export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProps) {
+export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<IChartApi | null>(null);
 	const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -44,7 +44,7 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 		typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : true
 	);
 	const [chartHeight, setChartHeight] = useState(initialHeight);
-	const [rsiHeight, setRsiHeight] = useState(120);
+	const [rsiHeight, setRsiHeight] = useState(180);
 	const [overviewHeight, setOverviewHeight] = useState(100);
 	const isResizing = useRef<false | "top" | "bottom" | "rsi" | "overview">(false);
 	const resizeStartY = useRef(0);
@@ -800,6 +800,13 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 						<span className="text-sm font-medium">RSI Chart Time Scale</span>
 						<span className="text-xs text-muted-foreground">Threshold: {data.rsi_threshold}</span>
 					</div>
+					{/* Top resize edge */}
+					<div
+						className="absolute -top-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-10 transition-colors"
+						style={{ top: '20px' }}
+						onMouseDown={(e) => handleResizeMouseDown(e, "rsi")}
+						onDoubleClick={() => handleResizeDoubleClick("rsi")}
+					/>
 					<div
 						ref={rsiContainerRef}
 						className="w-full rounded-lg border bg-card"
