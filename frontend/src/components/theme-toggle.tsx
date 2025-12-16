@@ -50,10 +50,6 @@ export function ThemeToggle() {
 				<SelectValue />
 			</SelectTrigger>
 			<SelectContent>
-				<SelectItem value="light">
-					<Sun className="h-4 w-4" />
-					Light
-				</SelectItem>
 				<SelectItem value="dark">
 					<Moon className="h-4 w-4" />
 					Dark
@@ -61,6 +57,10 @@ export function ThemeToggle() {
 				<SelectItem value="system">
 					<Monitor className="h-4 w-4" />
 					System
+				</SelectItem>
+				<SelectItem value="light">
+					<Sun className="h-4 w-4" />
+					Light
 				</SelectItem>
 			</SelectContent>
 		</Select>

@@ -106,8 +106,8 @@ export const useParametersStore = create<ParametersState>()(
 			showYearlyBreakdown: false,
 			activeTab: "individual",
 
-			// Theme - defaults to system preference
-			theme: "system",
+			// Theme - defaults to dark
+			theme: "dark",
 
 			// Chart state
 			chartTimeRange: "ALL",

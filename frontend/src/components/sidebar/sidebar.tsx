@@ -9,26 +9,16 @@ export function Sidebar() {
 		<aside className="w-80 border-r bg-card h-screen flex flex-col">
 			<div className="flex-1 overflow-y-auto p-4">
 				<div className="flex items-center gap-2 mb-4">
-					<TrendingUp className="h-6 w-6 text-primary" />
+					<TrendingUp className="h-10 w-10 text-primary" />
 					<h1 className="text-base font-semibold leading-tight">Advanced RSI + Slope Filter Backtesting System</h1>
 				</div>
 
+				<Separator className="mb-4" />
+
 				<div className="space-y-4">
-					<section>
-						<h2 className="text-base font-medium text-muted-foreground mb-2">
-							Parameters
-						</h2>
-						<ParameterControls />
-					</section>
-
+					<ParameterControls />
 					<Separator />
-
-					<section>
-						<h2 className="text-base font-medium text-muted-foreground mb-2">
-							Branch Selection
-						</h2>
-						<BranchSelector />
-					</section>
+					<BranchSelector />
 				</div>
 			</div>
 

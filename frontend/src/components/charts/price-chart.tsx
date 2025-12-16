@@ -22,12 +22,12 @@ interface PriceChartProps {
 
 type RangeOption = "7D" | "1M" | "3M" | "6M" | "1Y" | "2Y" | "3Y" | "4Y" | "5Y" | "ALL";
 
-// Theme colors for the chart
+// Theme colors for the chart (TradingView-inspired blue)
 const getChartColors = (isDark: boolean) => ({
-	background: isDark ? "#0a0a0a" : "#ffffff",
-	textColor: isDark ? "#a1a1aa" : "#71717a",
-	gridColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
-	baseLineColor: isDark ? "#52525b" : "#a1a1aa",
+	background: isDark ? "#131629" : "#ffffff",
+	textColor: isDark ? "#7b8ab8" : "#71717a",
+	gridColor: isDark ? "rgba(41, 98, 255, 0.08)" : "rgba(0, 0, 0, 0.1)",
+	baseLineColor: isDark ? "#2962ff" : "#a1a1aa",
 });
 
 export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProps) {
@@ -592,9 +592,9 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 
 		// Create area series for overview
 		const areaSeries = chart.addSeries(AreaSeries, {
-			topColor: isDark ? "rgba(59, 130, 246, 0.4)" : "rgba(59, 130, 246, 0.3)",
-			bottomColor: isDark ? "rgba(59, 130, 246, 0.0)" : "rgba(59, 130, 246, 0.0)",
-			lineColor: isDark ? "rgba(59, 130, 246, 0.8)" : "rgba(59, 130, 246, 0.6)",
+			topColor: isDark ? "rgba(41, 98, 255, 0.4)" : "rgba(59, 130, 246, 0.3)",
+			bottomColor: isDark ? "rgba(41, 98, 255, 0.0)" : "rgba(59, 130, 246, 0.0)",
+			lineColor: isDark ? "rgba(41, 98, 255, 0.8)" : "rgba(59, 130, 246, 0.6)",
 			lineWidth: 1,
 			priceLineVisible: false,
 			lastValueVisible: false,
@@ -684,7 +684,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 
 		// Create RSI line series
 		const rsiSeries = chart.addSeries(LineSeries, {
-			color: "#3b82f6",
+			color: "#2962ff",
 			lineWidth: 2,
 			priceLineVisible: false,
 			lastValueVisible: true,
@@ -697,7 +697,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 		// Add threshold line using createPriceLine
 		rsiSeries.createPriceLine({
 			price: data.rsi_threshold,
-			color: "#a1a1aa",
+			color: "#5d6b99",
 			lineWidth: 1,
 			lineStyle: 2, // Dashed
 			axisLabelVisible: true,
@@ -845,10 +845,10 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 						style={{
 							left: selectionBounds.left,
 							width: selectionBounds.width,
-							borderLeft: "3px solid #3b82f6",
-							borderRight: "3px solid #3b82f6",
-							backgroundColor: "rgba(59, 130, 246, 0.35)",
-							boxShadow: "inset 0 0 0 1px rgba(59, 130, 246, 0.5), 0 0 12px rgba(59, 130, 246, 0.5)",
+							borderLeft: "3px solid #2962ff",
+							borderRight: "3px solid #2962ff",
+							backgroundColor: "rgba(41, 98, 255, 0.35)",
+							boxShadow: "inset 0 0 0 1px rgba(41, 98, 255, 0.5), 0 0 12px rgba(41, 98, 255, 0.5)",
 						}}
 						onMouseDown={(e) => {
 							e.stopPropagation();
@@ -857,7 +857,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 					>
 						{/* Left resize handle */}
 						<div
-							className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-blue-500/30"
+							className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-[#2962ff]/30"
 							onMouseDown={(e) => {
 								e.stopPropagation();
 								handleMouseDown(e, "left");
@@ -865,7 +865,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 						/>
 						{/* Right resize handle */}
 						<div
-							className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-blue-500/30"
+							className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-[#2962ff]/30"
 							onMouseDown={(e) => {
 								e.stopPropagation();
 								handleMouseDown(e, "right");
