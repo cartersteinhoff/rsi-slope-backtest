@@ -38,9 +38,6 @@ export function BranchSelector() {
 	const tickers = tickersData?.tickers ?? [];
 	const allBranches = allBranchesData?.branches ?? [];
 	const tickerBranches = filteredBranchesData?.branches ?? [];
-	const searchableBranches = allBranches.filter((branch) =>
-		branch.toLowerCase().includes(branchSearch.toLowerCase())
-	);
 	const filteredTickers = tickers.filter((ticker) =>
 		ticker.toLowerCase().includes(tickerSearch.toLowerCase())
 	);
@@ -77,7 +74,7 @@ export function BranchSelector() {
 						onChange={(e) => setBranchSearch(e.target.value)}
 						onFocus={() => setIsSearchFocused(true)}
 						onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
-						className="text-sm h-8 pr-14"
+						className="text-sm h-8 pr-14 cursor-pointer"
 					/>
 					{branchSearch && (
 						<button
@@ -93,9 +90,9 @@ export function BranchSelector() {
 					)}
 					<ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 				</div>
-				{isSearchFocused && searchableBranches.length > 0 && (
+				{isSearchFocused && allBranches.length > 0 && (
 					<div className="absolute z-10 w-full max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md">
-						{searchableBranches.map((branch) => (
+						{allBranches.map((branch) => (
 							<button
 								key={branch}
 								type="button"
@@ -114,10 +111,7 @@ export function BranchSelector() {
 						))}
 					</div>
 				)}
-				{isSearchFocused && branchSearch && searchableBranches.length === 0 && (
-					<p className="text-xs text-muted-foreground">No branches found</p>
-				)}
-			</div>
+							</div>
 
 			<div className="space-y-1 relative">
 				<Label className="text-sm">Search Tickers</Label>
