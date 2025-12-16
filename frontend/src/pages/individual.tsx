@@ -53,7 +53,7 @@ export function IndividualPage() {
 
 	return (
 		<div className="space-y-6">
-			<PriceChart data={data.chart_data} />
+			<PriceChart data={data.chart_data} signalType={signalType} />
 
 			<MetricsCards metrics={data.metrics} />
 

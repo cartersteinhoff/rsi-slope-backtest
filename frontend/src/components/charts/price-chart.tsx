@@ -13,11 +13,12 @@ import {
 	CrosshairMode,
 } from "lightweight-charts";
 import { Button } from "@/components/ui/button";
-import type { ChartData } from "@/types";
+import type { ChartData, SignalType } from "@/types";
 
 interface PriceChartProps {
 	data: ChartData;
 	height?: number;
+	signalType?: SignalType;
 }
 
 type RangeOption = "7D" | "1M" | "3M" | "6M" | "1Y" | "2Y" | "3Y" | "4Y" | "5Y" | "ALL";
@@ -30,7 +31,7 @@ const getChartColors = (isDark: boolean) => ({
 	baseLineColor: isDark ? "#2962ff" : "#a1a1aa",
 });
 
-export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProps) {
+export function PriceChart({ data, height: initialHeight = 600, signalType = "Both" }: PriceChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<IChartApi | null>(null);
 	const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -458,8 +459,8 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 		markerSeries.setData(fullLineData);
 		markerSeriesRef.current = markerSeries;
 
-		// Create colored line segments for slope overlay
-		if (data.slope_segments && data.slope_segments.length > 0) {
+		// Create colored line segments for slope overlay (only when slope is used)
+		if (signalType !== "RSI" && data.slope_segments && data.slope_segments.length > 0) {
 			for (const segment of data.slope_segments) {
 				const segmentStartIdx = data.candles.findIndex((c) => c.time >= segment.start);
 				const segmentEndIdx = data.candles.findIndex((c) => c.time > segment.end);
@@ -518,7 +519,7 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 
 		// Fit content
 		chartRef.current?.timeScale().fitContent();
-	}, [data, isDark]);
+	}, [data, isDark, signalType]);
 
 	// Overview chart initialization
 	useEffect(() => {
@@ -754,14 +755,18 @@ export function PriceChart({ data, height: initialHeight = 600 }: PriceChartProp
 					)}
 				</div>
 				<div className="flex items-center gap-6 text-sm text-muted-foreground">
-					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#8b5cf6]">▲</span>
-						<span>RSI Entry</span>
-					</div>
-					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#f59e0b]">▲</span>
-						<span>Slope Entry</span>
-					</div>
+					{signalType !== "Slope" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-lg text-[#8b5cf6]">▲</span>
+							<span>RSI Entry</span>
+						</div>
+					)}
+					{signalType !== "RSI" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-lg text-[#f59e0b]">▲</span>
+							<span>Slope Entry</span>
+						</div>
+					)}
 					<div className="flex items-center gap-1.5">
 						<span className="text-lg text-[#22c55e]">▼</span>
 						<span>Win</span>
