@@ -797,7 +797,7 @@ export function PriceChart({ data, height: initialHeight = 500 }: PriceChartProp
 			{data.rsi_data?.length > 0 && (
 				<div className="relative">
 					<div className="flex items-center gap-2 mb-1">
-						<span className="text-sm font-medium">RSI</span>
+						<span className="text-sm font-medium">RSI Chart Time Scale</span>
 						<span className="text-xs text-muted-foreground">Threshold: {data.rsi_threshold}</span>
 					</div>
 					<div
