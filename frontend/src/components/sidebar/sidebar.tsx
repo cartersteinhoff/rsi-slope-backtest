@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { ParameterControls } from "./parameter-controls";
 import { BranchSelector } from "./branch-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useParametersStore } from "@/stores/parameters-store";
 import { Button } from "@/components/ui/button";
 
@@ -60,17 +60,15 @@ export function Sidebar() {
 
 	if (sidebarCollapsed) {
 		return (
-			<aside className="w-12 border-r bg-card h-screen flex flex-col items-center py-4">
+			<aside className="w-10 border-r bg-card h-screen flex flex-col items-center py-4">
 				<Button
 					variant="ghost"
 					size="icon"
 					onClick={() => setSidebarCollapsed(false)}
-					className="mb-4"
 					title="Expand sidebar (⌘B)"
 				>
 					<ChevronRight className="h-4 w-4" />
 				</Button>
-				<TrendingUp className="h-6 w-6 text-primary" />
 			</aside>
 		);
 	}
@@ -83,8 +81,7 @@ export function Sidebar() {
 		>
 			<div className="flex-1 overflow-y-auto p-4">
 				<div className="flex items-center gap-2 mb-4">
-					<TrendingUp className="h-10 w-10 text-primary flex-shrink-0" />
-					<h1 className="text-base font-semibold leading-tight flex-1">Advanced RSI + Slope Filter Backtesting System</h1>
+					<h1 className="text-sm font-semibold leading-tight flex-1">RSI + Slope Backtester</h1>
 					<Button
 						variant="ghost"
 						size="icon"

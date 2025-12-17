@@ -110,7 +110,7 @@ export const useParametersStore = create<ParametersState>()(
 			showYearlyBreakdown: false,
 			activeTab: "individual",
 			sidebarCollapsed: false,
-			sidebarWidth: 320,
+			sidebarWidth: 260,
 
 			// Theme - defaults to dark
 			theme: "dark",
