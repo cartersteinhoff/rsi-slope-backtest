@@ -39,7 +39,7 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 	const lineSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
 	const areaSeriesRef = useRef<ISeriesApi<"Area">[]>([]);
 	const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
-	const [selectedRange, setSelectedRange] = useState<RangeOption>("ALL");
+	const [selectedRange, setSelectedRange] = useState<RangeOption>("3M");
 	const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
 	const [isDark, setIsDark] = useState(() =>
 		typeof window !== "undefined" ? document.documentElement.classList.contains("dark") : true
@@ -488,6 +488,14 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 
 		// Build markers with TradingView-style labels
 		const markers = [
+			// RSI triggers shown in "Both" mode (when RSI triggered but waiting for slope confirmation)
+			...(signalType === "Both" && data.rsi_triggers ? data.rsi_triggers.map((t) => ({
+				time: t.time as Time,
+				position: "belowBar" as const,
+				color: "#8b5cf6",
+				shape: "circle" as const,
+				text: "RSI",
+			})) : []),
 			...data.entries.map((e) => {
 				const returnStr = e.return_pct !== undefined
 					? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(1)}%`
@@ -517,8 +525,19 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 			markersRef.current = createSeriesMarkers(markerSeries, markers);
 		}
 
-		// Fit content
-		chartRef.current?.timeScale().fitContent();
+		// Apply default 3M range on initial load
+		const lastCandle = data.candles[data.candles.length - 1];
+		const lastTime = lastCandle.time as number;
+		const fromTime = lastTime - 90 * 24 * 60 * 60; // 3 months
+		const fromIndex = data.candles.findIndex((c) => c.time >= fromTime);
+		if (fromIndex >= 0) {
+			chart.timeScale().setVisibleLogicalRange({
+				from: fromIndex,
+				to: data.candles.length - 1,
+			});
+		} else {
+			chart.timeScale().fitContent();
+		}
 	}, [data, isDark, signalType]);
 
 	// Overview chart initialization
@@ -755,6 +774,12 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 					)}
 				</div>
 				<div className="flex items-center gap-6 text-sm text-muted-foreground">
+					{signalType === "Both" && (
+						<div className="flex items-center gap-1.5">
+							<span className="text-lg text-[#8b5cf6]">●</span>
+							<span>RSI Trigger</span>
+						</div>
+					)}
 					{signalType !== "Slope" && (
 						<div className="flex items-center gap-1.5">
 							<span className="text-lg text-[#8b5cf6]">▲</span>

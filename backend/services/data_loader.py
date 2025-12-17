@@ -53,10 +53,11 @@ class DataLoader:
     def extract_ticker_from_branch(branch_name: str) -> str:
         """Extract ticker symbol from branch name.
 
-        Branch format: {WINDOW}D_RSI_{TICKER}_LT{THRESHOLD}_daily_trade_log
+        Branch format: {WINDOW}D_RSI_{TICKER}_{LT|GT}{THRESHOLD}_daily_trade_log
         Example: 14D_RSI_AAPL_LT30_daily_trade_log -> AAPL
+        Example: 10D_RSI_AOR_GT53_daily_trade_log -> AOR
         """
-        match = re.search(r"_RSI_(.+?)_LT", branch_name)
+        match = re.search(r"_RSI_(.+?)_(?:LT|GT)", branch_name)
         if match:
             return match.group(1)
         return ""
