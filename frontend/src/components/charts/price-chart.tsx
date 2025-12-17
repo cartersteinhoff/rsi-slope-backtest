@@ -362,15 +362,16 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 
 		chartRef.current = chart;
 
-		// Handle resize
-		const handleResize = () => {
+		// Handle resize with ResizeObserver to detect container size changes
+		const resizeObserver = new ResizeObserver(() => {
 			if (chartContainerRef.current) {
 				chart.applyOptions({ width: chartContainerRef.current.clientWidth });
 			}
-		};
+		});
 
-		window.addEventListener("resize", handleResize);
-		handleResize();
+		if (chartContainerRef.current) {
+			resizeObserver.observe(chartContainerRef.current);
+		}
 
 		// Subscribe to visible range changes to sync overview selection
 		const handleVisibleRangeChange = () => {
@@ -383,7 +384,7 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 
 		return () => {
 			chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleVisibleRangeChange);
-			window.removeEventListener("resize", handleResize);
+			resizeObserver.disconnect();
 			chart.remove();
 			chartRef.current = null;
 			candlestickSeriesRef.current = null;
@@ -572,19 +573,20 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 
 		overviewChartRef.current = overviewChart;
 
-		// Handle resize
-		const handleResize = () => {
+		// Handle resize with ResizeObserver
+		const resizeObserver = new ResizeObserver(() => {
 			if (overviewContainerRef.current) {
 				overviewChart.applyOptions({ width: overviewContainerRef.current.clientWidth });
 				updateSelectionFromChart();
 			}
-		};
+		});
 
-		window.addEventListener("resize", handleResize);
-		handleResize();
+		if (overviewContainerRef.current) {
+			resizeObserver.observe(overviewContainerRef.current);
+		}
 
 		return () => {
-			window.removeEventListener("resize", handleResize);
+			resizeObserver.disconnect();
 			overviewChart.remove();
 			overviewChartRef.current = null;
 			overviewSeriesRef.current = null;
@@ -665,18 +667,19 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 
 		rsiChartRef.current = rsiChart;
 
-		// Handle resize
-		const handleResize = () => {
+		// Handle resize with ResizeObserver
+		const resizeObserver = new ResizeObserver(() => {
 			if (rsiContainerRef.current) {
 				rsiChart.applyOptions({ width: rsiContainerRef.current.clientWidth });
 			}
-		};
+		});
 
-		window.addEventListener("resize", handleResize);
-		handleResize();
+		if (rsiContainerRef.current) {
+			resizeObserver.observe(rsiContainerRef.current);
+		}
 
 		return () => {
-			window.removeEventListener("resize", handleResize);
+			resizeObserver.disconnect();
 			rsiChart.remove();
 			rsiChartRef.current = null;
 			rsiSeriesRef.current = null;
