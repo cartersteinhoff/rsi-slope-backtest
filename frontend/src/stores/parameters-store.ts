@@ -49,6 +49,7 @@ interface ParametersState {
 	showYearlyBreakdown: boolean;
 	activeTab: "individual" | "overview" | "reports" | "branches";
 	sidebarCollapsed: boolean;
+	sidebarWidth: number;
 
 	// Theme state
 	theme: Theme;
@@ -75,6 +76,7 @@ interface ParametersState {
 		value: "individual" | "overview" | "reports" | "branches",
 	) => void;
 	setSidebarCollapsed: (value: boolean) => void;
+	setSidebarWidth: (value: number) => void;
 	setTheme: (value: Theme) => void;
 	setChartTimeRange: (value: string) => void;
 	setOverviewCache: (params: OverviewParams, branches: BranchOverview[]) => void;
@@ -108,6 +110,7 @@ export const useParametersStore = create<ParametersState>()(
 			showYearlyBreakdown: false,
 			activeTab: "individual",
 			sidebarCollapsed: false,
+			sidebarWidth: 320,
 
 			// Theme - defaults to dark
 			theme: "dark",
@@ -132,6 +135,7 @@ export const useParametersStore = create<ParametersState>()(
 			setShowYearlyBreakdown: (value) => set({ showYearlyBreakdown: value }),
 			setActiveTab: (value) => set({ activeTab: value }),
 			setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
+			setSidebarWidth: (value) => set({ sidebarWidth: value }),
 			setTheme: (value) => set({ theme: value }),
 			setChartTimeRange: (value) => set({ chartTimeRange: value }),
 			setOverviewCache: (params, branches) =>
@@ -161,6 +165,7 @@ export const useParametersStore = create<ParametersState>()(
 				showYearlyBreakdown: state.showYearlyBreakdown,
 				activeTab: state.activeTab,
 				sidebarCollapsed: state.sidebarCollapsed,
+				sidebarWidth: state.sidebarWidth,
 				theme: state.theme,
 				chartTimeRange: state.chartTimeRange,
 			}),
