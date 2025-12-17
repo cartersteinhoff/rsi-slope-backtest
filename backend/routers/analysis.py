@@ -50,10 +50,11 @@ def trades_to_schema(trades: list[TradeSignal]) -> list[Trade]:
 def extract_rsi_threshold_from_branch(branch_name: str) -> float:
     """Extract RSI threshold from branch name.
 
-    Branch format: {WINDOW}D_RSI_{TICKER}_LT{THRESHOLD}_daily_trade_log
+    Branch format: {WINDOW}D_RSI_{TICKER}_{LT|GT}{THRESHOLD}_daily_trade_log
     Example: 14D_RSI_AAPL_LT30_daily_trade_log -> 30
+    Example: 10D_RSI_AOR_GT53_daily_trade_log -> 53
     """
-    match = re.search(r"_LT(\d+)_", branch_name)
+    match = re.search(r"_(?:LT|GT)(\d+)_", branch_name)
     if match:
         return float(match.group(1))
     return 30.0  # Default
