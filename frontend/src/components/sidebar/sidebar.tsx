@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 500;
+const COLLAPSED_WIDTH = 40;
 
 export function Sidebar() {
 	const { sidebarCollapsed, setSidebarCollapsed, sidebarWidth, setSidebarWidth } = useParametersStore();
@@ -30,11 +31,12 @@ export function Sidebar() {
 
 	// Handle resize drag
 	const startResizing = useCallback((e: React.MouseEvent) => {
+		if (sidebarCollapsed) return;
 		e.preventDefault();
 		isResizing.current = true;
 		document.body.style.cursor = "col-resize";
 		document.body.style.userSelect = "none";
-	}, []);
+	}, [sidebarCollapsed]);
 
 	useEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
@@ -58,63 +60,69 @@ export function Sidebar() {
 		};
 	}, [setSidebarWidth]);
 
-	if (sidebarCollapsed) {
-		return (
-			<aside className="w-10 border-r bg-card h-screen flex flex-col items-center py-4">
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={() => setSidebarCollapsed(false)}
-					title="Expand sidebar (⌘B)"
-				>
-					<ChevronRight className="h-4 w-4" />
-				</Button>
-			</aside>
-		);
-	}
+	const currentWidth = sidebarCollapsed ? COLLAPSED_WIDTH : sidebarWidth;
 
 	return (
 		<aside
 			ref={sidebarRef}
-			className="border-r bg-card h-screen flex flex-col relative"
-			style={{ width: sidebarWidth }}
+			className="border-r bg-card h-screen flex flex-col relative transition-[width] duration-200 ease-out"
+			style={{ width: currentWidth }}
 		>
-			<div className="flex-1 overflow-y-auto p-4">
-				<div className="flex items-center gap-2 mb-4">
-					<h1 className="text-sm font-semibold leading-tight flex-1">RSI + Slope Backtester</h1>
+			{/* Collapsed state: just the expand button */}
+			{sidebarCollapsed && (
+				<div className="flex flex-col items-center py-4">
 					<Button
 						variant="ghost"
 						size="icon"
-						onClick={() => setSidebarCollapsed(true)}
-						className="flex-shrink-0"
-						title="Collapse sidebar (⌘B)"
+						onClick={() => setSidebarCollapsed(false)}
+						title="Expand sidebar (⌘B)"
 					>
-						<ChevronLeft className="h-4 w-4" />
+						<ChevronRight className="h-4 w-4" />
 					</Button>
 				</div>
+			)}
 
-				<Separator className="mb-4" />
+			{/* Expanded state: full content */}
+			{!sidebarCollapsed && (
+				<>
+					<div className="flex-1 overflow-y-auto p-4 overflow-x-hidden">
+						<div className="flex items-center gap-2 mb-4">
+							<h1 className="text-sm font-semibold leading-tight flex-1 whitespace-nowrap">RSI + Slope Backtester</h1>
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={() => setSidebarCollapsed(true)}
+								className="flex-shrink-0"
+								title="Collapse sidebar (⌘B)"
+							>
+								<ChevronLeft className="h-4 w-4" />
+							</Button>
+						</div>
 
-				<div className="space-y-4">
-					<ParameterControls />
-					<Separator />
-					<BranchSelector />
-				</div>
-			</div>
+						<Separator className="mb-4" />
 
-			{/* Footer with theme toggle */}
-			<div className="border-t p-3">
-				<div className="flex items-center justify-between">
-					<span className="text-base text-muted-foreground">Theme</span>
-					<ThemeToggle />
-				</div>
-			</div>
+						<div className="space-y-4">
+							<ParameterControls />
+							<Separator />
+							<BranchSelector />
+						</div>
+					</div>
 
-			{/* Resize handle */}
-			<div
-				className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 active:bg-primary/50 transition-colors"
-				onMouseDown={startResizing}
-			/>
+					{/* Footer with theme toggle */}
+					<div className="border-t p-3">
+						<div className="flex items-center justify-between">
+							<span className="text-base text-muted-foreground">Theme</span>
+							<ThemeToggle />
+						</div>
+					</div>
+
+					{/* Resize handle */}
+					<div
+						className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/50 active:bg-primary/50 transition-colors"
+						onMouseDown={startResizing}
+					/>
+				</>
+			)}
 		</aside>
 	);
 }
