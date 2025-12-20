@@ -13,7 +13,7 @@ const COLLAPSED_WIDTH = 40;
 
 const ZOOM_MIN = 50;
 const ZOOM_MAX = 150;
-const ZOOM_STEP = 10;
+const ZOOM_STEP = 5;
 
 export function Sidebar() {
 	const { sidebarCollapsed, setSidebarCollapsed, sidebarWidth, setSidebarWidth, uiZoom, setUiZoom } = useParametersStore();
