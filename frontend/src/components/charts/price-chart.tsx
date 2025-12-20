@@ -35,7 +35,8 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<IChartApi | null>(null);
 	const candlestickSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-	const markerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+	const entryMarkerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+	const exitMarkerSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 	const lineSeriesRef = useRef<ISeriesApi<"Line">[]>([]);
 	const areaSeriesRef = useRef<ISeriesApi<"Area">[]>([]);
 	const markersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
@@ -347,13 +348,30 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 				vertLines: { color: colors.gridColor },
 				horzLines: { color: colors.gridColor },
 			},
-			rightPriceScale: { borderVisible: false },
+			rightPriceScale: {
+				borderVisible: false,
+				autoScale: true,
+			},
 			timeScale: {
 				borderVisible: false,
 				timeVisible: true,
 				secondsVisible: false,
 				fixLeftEdge: true,
 				fixRightEdge: true,
+			},
+			handleScroll: {
+				mouseWheel: true,
+				pressedMouseMove: true,
+				horzTouchDrag: true,
+				vertTouchDrag: true,
+			},
+			handleScale: {
+				mouseWheel: true,
+				pinch: true,
+				axisPressedMouseMove: {
+					time: true,
+					price: true,
+				},
 			},
 			crosshair: {
 				mode: CrosshairMode.Normal,
@@ -388,7 +406,8 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 			chart.remove();
 			chartRef.current = null;
 			candlestickSeriesRef.current = null;
-			markerSeriesRef.current = null;
+			entryMarkerSeriesRef.current = null;
+			exitMarkerSeriesRef.current = null;
 			lineSeriesRef.current = [];
 			areaSeriesRef.current = [];
 			markersRef.current = null;
@@ -413,9 +432,13 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 			chart.removeSeries(candlestickSeriesRef.current);
 			candlestickSeriesRef.current = null;
 		}
-		if (markerSeriesRef.current) {
-			chart.removeSeries(markerSeriesRef.current);
-			markerSeriesRef.current = null;
+		if (entryMarkerSeriesRef.current) {
+			chart.removeSeries(entryMarkerSeriesRef.current);
+			entryMarkerSeriesRef.current = null;
+		}
+		if (exitMarkerSeriesRef.current) {
+			chart.removeSeries(exitMarkerSeriesRef.current);
+			exitMarkerSeriesRef.current = null;
 		}
 		for (const series of lineSeriesRef.current) {
 			chart.removeSeries(series);
@@ -474,7 +497,8 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 		const exitLineData = data.candles.map((c) => ({ time: c.time as Time, value: c.high + markerOffset }));
 		exitMarkerSeries.setData(exitLineData);
 
-		markerSeriesRef.current = entryMarkerSeries;
+		entryMarkerSeriesRef.current = entryMarkerSeries;
+		exitMarkerSeriesRef.current = exitMarkerSeries;
 
 		// Create colored line segments for slope overlay (only when slope is used)
 		if (signalType !== "RSI" && data.slope_segments && data.slope_segments.length > 0) {
