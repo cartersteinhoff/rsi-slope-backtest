@@ -350,7 +350,7 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 			},
 			rightPriceScale: {
 				borderVisible: false,
-				autoScale: true,
+				autoScale: false,
 			},
 			timeScale: {
 				borderVisible: false,
