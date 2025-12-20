@@ -84,6 +84,7 @@ def apply_slope_filter(
     entry_date = None
     entry_type = "Slope"
     rsi_just_activated = False  # Track if RSI activated this bar
+    prev_slope_active = False  # Track previous slope state for transition detection
 
     trades: list[TradeSignal] = []
 
@@ -97,6 +98,11 @@ def apply_slope_filter(
             flags[i] = flag
             continue
 
+        # Detect slope transitions (matching POC logic)
+        slope_active = slope > pos_threshold
+        slope_just_activated = (not prev_slope_active) and slope_active
+        slope_just_deactivated = prev_slope_active and (not slope_active)
+
         # Flag logic: Flag turns to 1 when RSI gets activated
         rsi_just_activated = False
         if active == 1 and flag == 0:
@@ -108,19 +114,27 @@ def apply_slope_filter(
         exit_date = None
 
         if signal_type == "Both":
-            # BOTH: RSI activates flag, then slope confirms entry
-            if not in_position and flag == 1 and slope > pos_threshold:
+            # BOTH: RSI activates flag, slope confirms entry via TRANSITIONS (matching POC)
+            # Entry case 1: RSI just triggered AND slope is already active → enter immediately
+            if not in_position and rsi_just_activated and slope_active:
                 in_position = True
                 entry_price = close
                 entry_date = date
-                # If RSI just activated this bar AND slope is already good, it's RSI-triggered
-                # Otherwise slope was the final trigger
-                entry_type = "RSI" if rsi_just_activated else "Slope"
+                entry_type = "RSI"
                 entry_signals[i] = 1
                 in_trades[i] = 1
+            # Entry case 2: RSI triggered previously (flag=1), slope just activated → enter
+            elif not in_position and flag == 1 and slope_just_activated:
+                in_position = True
+                entry_price = close
+                entry_date = date
+                entry_type = "Slope"
+                entry_signals[i] = 1
+                in_trades[i] = 1
+            # In position: check for exit on slope DEACTIVATION (transition-based)
             elif in_position:
                 in_trades[i] = 1
-                if slope <= pos_threshold:
+                if slope_just_deactivated:
                     in_position = False
                     exit_signals[i] = 1
                     in_trades[i] = 0
@@ -182,6 +196,7 @@ def apply_slope_filter(
             ))
 
         flags[i] = flag
+        prev_slope_active = slope_active  # Update for next iteration
 
     # Write arrays back to dataframe
     merged['Flag'] = flags
