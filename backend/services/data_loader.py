@@ -51,13 +51,26 @@ class DataLoader:
 
     @staticmethod
     def extract_ticker_from_branch(branch_name: str) -> str:
-        """Extract ticker symbol from branch name.
+        """Extract base ticker symbol from branch name.
 
-        Branch format: {WINDOW}D_RSI_{TICKER}_{LT|GT}{THRESHOLD}_daily_trade_log
-        Example: 14D_RSI_AAPL_LT30_daily_trade_log -> AAPL
-        Example: 10D_RSI_AOR_GT53_daily_trade_log -> AOR
+        Branch format: {WINDOW}D_RSI_{BASE_TICKER}_{LT|GT}{THRESHOLD}_{INV_TICKER}_daily_trade_log
+        Example: 14D_RSI_AAPL_LT30_AAPL_daily_trade_log -> AAPL
+        Example: 10D_RSI_ABFL_GT49_VIXY_daily_trade_log -> ABFL
         """
         match = re.search(r"_RSI_(.+?)_(?:LT|GT)", branch_name)
+        if match:
+            return match.group(1)
+        return ""
+
+    @staticmethod
+    def extract_investment_ticker_from_branch(branch_name: str) -> str:
+        """Extract investment ticker from branch name.
+
+        Branch format: {WINDOW}D_RSI_{BASE_TICKER}_{LT|GT}{THRESHOLD}_{INV_TICKER}_daily_trade_log
+        Example: 14D_RSI_AAPL_LT30_AAPL_daily_trade_log -> AAPL
+        Example: 10D_RSI_ABFL_GT49_VIXY_daily_trade_log -> VIXY
+        """
+        match = re.search(r"(?:LT|GT)\d+_(.+?)_daily_trade_log", branch_name)
         if match:
             return match.group(1)
         return ""

@@ -12,6 +12,7 @@ import type { BranchOverview } from "@/types";
 import { formatPercent, formatNumber, getReturnColor } from "@/lib/formatters";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useParametersStore } from "@/stores/parameters-store";
 
 interface OverviewTableProps {
 	branches: BranchOverview[];
@@ -24,6 +25,15 @@ type SortOrder = "asc" | "desc";
 export function OverviewTable({ branches, onSelectBranch }: OverviewTableProps) {
 	const [sortKey, setSortKey] = useState<SortKey>("return_pct");
 	const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+	const alphaSystem = useParametersStore((s) => s.alphaSystem);
+
+	// Filter branches by alpha system (based on investment ticker in branch name)
+	const isVixBranch = (branch: string) => branch.includes("_VIXY_daily_trade_log");
+	const filteredBranches = alphaSystem === "both"
+		? branches
+		: branches.filter((b) =>
+			alphaSystem === "vix" ? isVixBranch(b.branch) : !isVixBranch(b.branch)
+		);
 
 	const handleSort = (key: SortKey) => {
 		if (sortKey === key) {
@@ -34,7 +44,7 @@ export function OverviewTable({ branches, onSelectBranch }: OverviewTableProps) 
 		}
 	};
 
-	const sortedBranches = [...branches].sort((a, b) => {
+	const sortedBranches = [...filteredBranches].sort((a, b) => {
 		const aVal = a[sortKey];
 		const bVal = b[sortKey];
 		if (typeof aVal === "number" && typeof bVal === "number") {
@@ -65,7 +75,7 @@ export function OverviewTable({ branches, onSelectBranch }: OverviewTableProps) 
 		</Button>
 	);
 
-	if (branches.length === 0) {
+	if (filteredBranches.length === 0) {
 		return (
 			<Card>
 				<CardContent className="py-8 text-center text-muted-foreground">
@@ -79,7 +89,7 @@ export function OverviewTable({ branches, onSelectBranch }: OverviewTableProps) 
 		<Card>
 			<CardHeader>
 				<CardTitle className="text-sm font-medium">
-					Branch Overview ({branches.length} branches)
+					Branch Overview ({filteredBranches.length} branches)
 				</CardTitle>
 			</CardHeader>
 			<CardContent>

@@ -18,9 +18,11 @@ export function BranchSelector() {
 		selectedTicker,
 		selectedBranch,
 		selectionMode,
+		alphaSystem,
 		setSelectedTicker,
 		setSelectedBranch,
 		setSelectionMode,
+		setAlphaSystem,
 	} = useParametersStore();
 
 	const { data: tickersData } = useTickers();
@@ -35,9 +37,37 @@ export function BranchSelector() {
 	const [isTickerFocused, setIsTickerFocused] = useState(false);
 	const [hasInitialized, setHasInitialized] = useState(false);
 
-	const tickers = tickersData?.tickers ?? [];
-	const allBranches = allBranchesData?.branches ?? [];
-	const tickerBranches = filteredBranchesData?.branches ?? [];
+	// Helper to check if a branch is a VIX strategy (invests in VIXY)
+	const isVixBranch = (branch: string) => branch.includes("_VIXY_daily_trade_log");
+
+	// Filter branches by alpha system (based on investment ticker)
+	const filterBranchesByAlphaSystem = (branches: string[]) => {
+		if (alphaSystem === "both") return branches;
+		return branches.filter((b) =>
+			alphaSystem === "vix" ? isVixBranch(b) : !isVixBranch(b)
+		);
+	};
+
+	const rawTickers = tickersData?.tickers ?? [];
+	const rawAllBranches = allBranchesData?.branches ?? [];
+	const rawTickerBranches = filteredBranchesData?.branches ?? [];
+
+	// Apply alpha system filter to branches
+	const allBranches = filterBranchesByAlphaSystem(rawAllBranches);
+	const tickerBranches = filterBranchesByAlphaSystem(rawTickerBranches);
+
+	// For tickers, filter based on whether they have any matching branches
+	const tickers = alphaSystem === "both"
+		? rawTickers
+		: rawTickers.filter((ticker) => {
+			// Check if this ticker has any branches matching the alpha system
+			return rawAllBranches.some((b) => {
+				const match = b.match(/_RSI_(.+?)_(?:LT|GT)/);
+				const baseTicker = match ? match[1] : "";
+				return baseTicker === ticker && (alphaSystem === "vix" ? isVixBranch(b) : !isVixBranch(b));
+			});
+		});
+
 	const filteredTickers = tickers.filter((ticker) =>
 		ticker.toLowerCase().includes(tickerSearch.toLowerCase())
 	);
@@ -50,6 +80,21 @@ export function BranchSelector() {
 			setHasInitialized(true);
 		}
 	}, [allBranches, hasInitialized, setSelectedBranch]);
+
+	// Auto-select first branch when alpha system filter changes and current selection is invalid
+	useEffect(() => {
+		if (!hasInitialized || allBranches.length === 0) return;
+
+		const currentBranchValid = selectedBranch && allBranches.includes(selectedBranch);
+		if (!currentBranchValid && allBranches.length > 0) {
+			const firstBranch = allBranches[0];
+			setSelectedBranch(firstBranch);
+			setSelectedTicker("");
+			setSelectionMode("all");
+			setTickerSearch("");
+			setBranchSearch(firstBranch.replace(/_daily_trade_log$/, "").replace(/_/g, " "));
+		}
+	}, [alphaSystem, allBranches, selectedBranch, hasInitialized, setSelectedBranch, setSelectedTicker, setSelectionMode]);
 
 	useEffect(() => {
 		if (tickerBranches.length === 0 || !selectedTicker) return;
@@ -65,6 +110,45 @@ export function BranchSelector() {
 
 	return (
 		<div className="space-y-3">
+			<div className="space-y-1">
+				<Label className="text-sm">Alpha System</Label>
+				<div className="flex rounded-md border overflow-hidden">
+					<button
+						type="button"
+						onClick={() => setAlphaSystem("both")}
+						className={`flex-1 px-2 py-1 text-xs transition-colors cursor-pointer ${
+							alphaSystem === "both"
+								? "bg-primary text-primary-foreground"
+								: "bg-background hover:bg-accent"
+						}`}
+					>
+						Both
+					</button>
+					<button
+						type="button"
+						onClick={() => setAlphaSystem("etf")}
+						className={`flex-1 px-2 py-1 text-xs border-l transition-colors cursor-pointer ${
+							alphaSystem === "etf"
+								? "bg-primary text-primary-foreground"
+								: "bg-background hover:bg-accent"
+						}`}
+					>
+						ETF
+					</button>
+					<button
+						type="button"
+						onClick={() => setAlphaSystem("vix")}
+						className={`flex-1 px-2 py-1 text-xs border-l transition-colors cursor-pointer ${
+							alphaSystem === "vix"
+								? "bg-primary text-primary-foreground"
+								: "bg-background hover:bg-accent"
+						}`}
+					>
+						VIX
+					</button>
+				</div>
+			</div>
+
 			<div className="space-y-1 relative">
 				<Label className="text-sm">Search Branches</Label>
 				<div className="relative">

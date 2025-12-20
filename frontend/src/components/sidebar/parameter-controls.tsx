@@ -19,7 +19,7 @@ export function ParameterControls() {
 			<div className="space-y-2">
 				<Label className="text-base">Signal Type</Label>
 				<div className="flex flex-col gap-1">
-					{(["RSI", "Slope", "Both"] as const).map((type) => (
+					{(["RSI", "Both"] as const).map((type) => (
 						<label
 							key={type}
 							className="flex items-center gap-2 cursor-pointer"
@@ -33,7 +33,7 @@ export function ParameterControls() {
 								className="w-3 h-3 accent-blue-500"
 							/>
 							<span className="text-base">
-								{type === "Both" ? "Both (RSI + Slope)" : `${type} Only`}
+								{type === "Both" ? "RSI + Slope" : "RSI Only"}
 							</span>
 						</label>
 					))}

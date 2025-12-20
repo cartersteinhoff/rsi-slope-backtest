@@ -140,14 +140,15 @@ def main():
 
     for i, row in df.iterrows():
         condition = row['Condition']
+        investment_ticker = row['Investment_Ticker']
         window, ticker, direction, threshold = parse_condition(condition)
 
         if ticker is None or ticker not in ticker_data:
             skipped += 1
             continue
 
-        # Create branch name matching expected format: {WINDOW}D_RSI_{TICKER}_{DIR}{THRESHOLD}_daily_trade_log
-        branch_name = f"{window}D_RSI_{ticker}_{direction}{threshold}_daily_trade_log"
+        # Create branch name: {WINDOW}D_RSI_{BASE_TICKER}_{DIR}{THRESHOLD}_{INVESTMENT_TICKER}_daily_trade_log
+        branch_name = f"{window}D_RSI_{ticker}_{direction}{threshold}_{investment_ticker}_daily_trade_log"
 
         # Create trade log
         trade_log = create_trade_log(ticker_data[ticker], window, direction, threshold, ticker)

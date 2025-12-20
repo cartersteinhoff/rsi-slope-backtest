@@ -448,17 +448,33 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 		candlestickSeries.setData(candleData);
 		candlestickSeriesRef.current = candlestickSeries;
 
-		// Create invisible line series for markers (markers need a line series)
-		const markerSeries = chart.addSeries(LineSeries, {
+		// Calculate price range for marker offset (TradingView-style spacing)
+		const priceRange = Math.max(...data.candles.map(c => c.high)) - Math.min(...data.candles.map(c => c.low));
+		const markerOffset = priceRange * 0.005; // 0.5% offset from candle
+
+		// Create invisible line series for entry markers (offset below candles)
+		const entryMarkerSeries = chart.addSeries(LineSeries, {
 			color: "transparent",
 			lineWidth: 1,
 			priceLineVisible: false,
 			lastValueVisible: false,
 			crosshairMarkerVisible: false,
 		});
-		const fullLineData = data.candles.map((c) => ({ time: c.time as Time, value: c.close }));
-		markerSeries.setData(fullLineData);
-		markerSeriesRef.current = markerSeries;
+		const entryLineData = data.candles.map((c) => ({ time: c.time as Time, value: c.low - markerOffset }));
+		entryMarkerSeries.setData(entryLineData);
+
+		// Create invisible line series for exit markers (offset above candles)
+		const exitMarkerSeries = chart.addSeries(LineSeries, {
+			color: "transparent",
+			lineWidth: 1,
+			priceLineVisible: false,
+			lastValueVisible: false,
+			crosshairMarkerVisible: false,
+		});
+		const exitLineData = data.candles.map((c) => ({ time: c.time as Time, value: c.high + markerOffset }));
+		exitMarkerSeries.setData(exitLineData);
+
+		markerSeriesRef.current = entryMarkerSeries;
 
 		// Create colored line segments for slope overlay (only when slope is used)
 		if (signalType !== "RSI" && data.slope_segments && data.slope_segments.length > 0) {
@@ -487,43 +503,43 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 			}
 		}
 
-		// Build markers with TradingView-style labels
-		const markers = [
-			// RSI triggers shown in "Both" mode (when RSI triggered but waiting for slope confirmation)
+		// Build entry markers (on offset line below candles)
+		const entryMarkers = [
+			// RSI triggers shown in "Both" mode
 			...(signalType === "Both" && data.rsi_triggers ? data.rsi_triggers.map((t) => ({
 				time: t.time as Time,
 				position: "belowBar" as const,
-				color: "#8b5cf6",
-				shape: "circle" as const,
-				text: "RSI",
+				color: "#a78bfa",
+				shape: "arrowUp" as const,
+				text: "R",
+				size: 1,
 			})) : []),
-			...data.entries.map((e) => {
-				const returnStr = e.return_pct !== undefined
-					? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(1)}%`
-					: "";
-				const label = e.entry_type === "RSI"
-					? `RSI ${returnStr}`
-					: `${returnStr} Slope`;
-				return {
-					time: e.time as Time,
-					position: "belowBar" as const,
-					color: e.entry_type === "RSI" ? "#8b5cf6" : "#f59e0b",
-					shape: "arrowUp" as const,
-					text: label,
-				};
-			}),
-			...data.exits.map((e) => ({
+			...data.entries.map((e) => ({
 				time: e.time as Time,
-				position: "aboveBar" as const,
-				color: e.return_pct && e.return_pct >= 0 ? "#22c55e" : "#ef4444",
-				shape: "arrowDown" as const,
-				text: e.return_pct ? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(1)}%` : "Exit",
+				position: "belowBar" as const,
+				color: e.entry_type === "RSI" ? "#8b5cf6" : "#f59e0b",
+				shape: "arrowUp" as const,
+				text: e.entry_type === "RSI" ? "R" : "S",
+				size: 1,
 			})),
 		].sort((a, b) => (a.time as number) - (b.time as number));
 
-		// Create markers on the invisible line series
-		if (markerSeries && markers.length > 0) {
-			markersRef.current = createSeriesMarkers(markerSeries, markers);
+		// Build exit markers (on offset line above candles)
+		const exitMarkers = data.exits.map((e) => ({
+			time: e.time as Time,
+			position: "aboveBar" as const,
+			color: e.return_pct && e.return_pct >= 0 ? "#22c55e" : "#ef4444",
+			shape: "arrowDown" as const,
+			text: e.return_pct ? `${e.return_pct >= 0 ? "+" : ""}${e.return_pct.toFixed(0)}%` : "",
+			size: 1,
+		})).sort((a, b) => (a.time as number) - (b.time as number));
+
+		// Create markers on the offset line series
+		if (entryMarkers.length > 0) {
+			createSeriesMarkers(entryMarkerSeries, entryMarkers);
+		}
+		if (exitMarkers.length > 0) {
+			createSeriesMarkers(exitMarkerSeries, exitMarkers);
 		}
 
 		// Apply default 3M range on initial load
@@ -776,31 +792,29 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 						</span>
 					)}
 				</div>
-				<div className="flex items-center gap-6 text-sm text-muted-foreground">
+				<div className="flex items-center gap-4 text-xs text-muted-foreground">
 					{signalType === "Both" && (
-						<div className="flex items-center gap-1.5">
-							<span className="text-lg text-[#8b5cf6]">●</span>
-							<span>RSI Trigger</span>
-						</div>
+						<>
+							<div className="flex items-center gap-1">
+								<span className="text-[#a78bfa]">●</span>
+								<span>Trigger</span>
+							</div>
+							<div className="flex items-center gap-1">
+								<span className="text-[#f59e0b]">▲</span>
+								<span>S = Slope</span>
+							</div>
+						</>
 					)}
-					{signalType !== "Slope" && (
-						<div className="flex items-center gap-1.5">
-							<span className="text-lg text-[#8b5cf6]">▲</span>
-							<span>RSI Entry</span>
-						</div>
-					)}
-					{signalType !== "RSI" && (
-						<div className="flex items-center gap-1.5">
-							<span className="text-lg text-[#f59e0b]">▲</span>
-							<span>Slope Entry</span>
-						</div>
-					)}
-					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#22c55e]">▼</span>
+					<div className="flex items-center gap-1">
+						<span className="text-[#8b5cf6]">▲</span>
+						<span>R = RSI</span>
+					</div>
+					<div className="flex items-center gap-1">
+						<span className="text-[#22c55e]">▼</span>
 						<span>Win</span>
 					</div>
-					<div className="flex items-center gap-1.5">
-						<span className="text-lg text-[#ef4444]">▼</span>
+					<div className="flex items-center gap-1">
+						<span className="text-[#ef4444]">▼</span>
 						<span>Loss</span>
 					</div>
 				</div>
@@ -814,7 +828,7 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 				/>
 				<div
 					ref={chartContainerRef}
-					className="w-full rounded-lg border bg-card"
+					className="w-full rounded-lg border bg-card cursor-grab active:cursor-grabbing"
 					style={{ minHeight: chartHeight }}
 				/>
 				{/* Bottom resize edge */}
@@ -840,7 +854,7 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 					/>
 					<div
 						ref={rsiContainerRef}
-						className="w-full rounded-lg border bg-card"
+						className="w-full rounded-lg border bg-card cursor-grab active:cursor-grabbing"
 						style={{ minHeight: rsiHeight }}
 					/>
 					{/* Bottom resize edge */}

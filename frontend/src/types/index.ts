@@ -99,7 +99,7 @@ export interface BranchesResponse {
 }
 
 // Parameter Types
-export type SignalType = "Both" | "RSI" | "Slope";
+export type SignalType = "Both" | "RSI";
 
 export interface AnalysisParams {
 	branch: string;
