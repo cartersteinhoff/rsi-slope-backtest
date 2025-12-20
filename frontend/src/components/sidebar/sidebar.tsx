@@ -161,7 +161,7 @@ export function Sidebar() {
 						>
 							Reset to 100%
 						</Button>
-						<Separator className="-mx-3 w-auto" />
+						<Separator className="-mx-3 w-[calc(100%+1.5rem)]" />
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-muted-foreground">Theme</span>
 							<ThemeToggle />
