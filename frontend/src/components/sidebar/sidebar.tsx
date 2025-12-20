@@ -127,7 +127,7 @@ export function Sidebar() {
 
 					{/* Footer with zoom and theme toggle */}
 					<div className="border-t p-3 space-y-2">
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-between py-1">
 							<span className="text-sm text-muted-foreground">Zoom</span>
 							<div className="flex items-center gap-1">
 								<Button
@@ -153,16 +153,8 @@ export function Sidebar() {
 								</Button>
 							</div>
 						</div>
-						<Button
-							variant="outline"
-							className="w-full h-8 text-sm"
-							onClick={() => setUiZoom(100)}
-							disabled={uiZoom === 100}
-						>
-							Reset to 100%
-						</Button>
-						<Separator className="-mx-3 w-[calc(100%+1.5rem)]" />
-						<div className="flex items-center justify-between">
+						<div className="-mx-3"><Separator /></div>
+						<div className="flex items-center justify-between py-1">
 							<span className="text-sm text-muted-foreground">Theme</span>
 							<ThemeToggle />
 						</div>

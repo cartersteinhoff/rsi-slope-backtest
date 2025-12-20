@@ -817,29 +817,29 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 						</span>
 					)}
 				</div>
-				<div className="flex items-center gap-4 text-xs text-muted-foreground">
+				<div className="flex items-center gap-4 text-sm text-muted-foreground">
 					{signalType === "Both" && (
 						<>
 							<div className="flex items-center gap-1">
-								<span className="text-[#a78bfa]">●</span>
+								<span className="text-lg leading-none text-[#a78bfa]">●</span>
 								<span>Trigger</span>
 							</div>
 							<div className="flex items-center gap-1">
-								<span className="text-[#f59e0b]">▲</span>
+								<span className="text-lg leading-none text-[#f59e0b]">▲</span>
 								<span>S = Slope</span>
 							</div>
 						</>
 					)}
 					<div className="flex items-center gap-1">
-						<span className="text-[#8b5cf6]">▲</span>
+						<span className="text-lg leading-none text-[#8b5cf6]">▲</span>
 						<span>R = RSI</span>
 					</div>
 					<div className="flex items-center gap-1">
-						<span className="text-[#22c55e]">▼</span>
+						<span className="text-lg leading-none text-[#22c55e]">▼</span>
 						<span>Win</span>
 					</div>
 					<div className="flex items-center gap-1">
-						<span className="text-[#ef4444]">▼</span>
+						<span className="text-lg leading-none text-[#ef4444]">▼</span>
 						<span>Loss</span>
 					</div>
 				</div>
