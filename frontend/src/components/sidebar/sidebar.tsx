@@ -3,7 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { ParameterControls } from "./parameter-controls";
 import { BranchSelector } from "./branch-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useParametersStore } from "@/stores/parameters-store";
 import { Button } from "@/components/ui/button";
 
@@ -11,10 +11,27 @@ const MIN_WIDTH = 200;
 const MAX_WIDTH = 500;
 const COLLAPSED_WIDTH = 40;
 
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 150;
+const ZOOM_STEP = 10;
+
 export function Sidebar() {
-	const { sidebarCollapsed, setSidebarCollapsed, sidebarWidth, setSidebarWidth } = useParametersStore();
+	const { sidebarCollapsed, setSidebarCollapsed, sidebarWidth, setSidebarWidth, uiZoom, setUiZoom } = useParametersStore();
 	const isResizing = useRef(false);
 	const sidebarRef = useRef<HTMLElement>(null);
+
+	// Apply UI zoom to document
+	useEffect(() => {
+		document.documentElement.style.fontSize = `${uiZoom}%`;
+	}, [uiZoom]);
+
+	const handleZoomIn = useCallback(() => {
+		setUiZoom(Math.min(ZOOM_MAX, uiZoom + ZOOM_STEP));
+	}, [uiZoom, setUiZoom]);
+
+	const handleZoomOut = useCallback(() => {
+		setUiZoom(Math.max(ZOOM_MIN, uiZoom - ZOOM_STEP));
+	}, [uiZoom, setUiZoom]);
 
 	// Keyboard shortcut: Cmd/Ctrl + B to toggle sidebar
 	useEffect(() => {
@@ -108,10 +125,37 @@ export function Sidebar() {
 						</div>
 					</div>
 
-					{/* Footer with theme toggle */}
-					<div className="border-t p-3">
+					{/* Footer with zoom and theme toggle */}
+					<div className="border-t p-3 space-y-2">
 						<div className="flex items-center justify-between">
-							<span className="text-base text-muted-foreground">Theme</span>
+							<span className="text-sm text-muted-foreground">Zoom</span>
+							<div className="flex items-center gap-1">
+								<Button
+									variant="outline"
+									size="icon"
+									className="h-7 w-7"
+									onClick={handleZoomOut}
+									disabled={uiZoom <= ZOOM_MIN}
+									title="Zoom out"
+								>
+									<ZoomOut className="h-3.5 w-3.5" />
+								</Button>
+								<span className="text-xs w-10 text-center tabular-nums">{uiZoom}%</span>
+								<Button
+									variant="outline"
+									size="icon"
+									className="h-7 w-7"
+									onClick={handleZoomIn}
+									disabled={uiZoom >= ZOOM_MAX}
+									title="Zoom in"
+								>
+									<ZoomIn className="h-3.5 w-3.5" />
+								</Button>
+							</div>
+						</div>
+						<Separator className="-mx-3 w-auto" />
+						<div className="flex items-center justify-between">
+							<span className="text-sm text-muted-foreground">Theme</span>
 							<ThemeToggle />
 						</div>
 					</div>

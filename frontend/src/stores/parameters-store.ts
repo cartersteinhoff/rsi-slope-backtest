@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { SignalType, BranchOverview } from "@/types";
 
 export type Theme = "light" | "dark" | "system";
+export type AlphaSystem = "both" | "etf" | "vix";
 
 // Params that affect overview results
 interface OverviewParams {
@@ -44,12 +45,14 @@ interface ParametersState {
 	selectedTicker: string;
 	selectedBranch: string;
 	selectionMode: "ticker" | "all";
+	alphaSystem: AlphaSystem;
 
 	// UI state
 	showYearlyBreakdown: boolean;
 	activeTab: "individual" | "overview" | "reports" | "branches";
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
+	uiZoom: number;
 
 	// Theme state
 	theme: Theme;
@@ -71,12 +74,14 @@ interface ParametersState {
 	setSelectedTicker: (value: string) => void;
 	setSelectedBranch: (value: string) => void;
 	setSelectionMode: (value: "ticker" | "all") => void;
+	setAlphaSystem: (value: AlphaSystem) => void;
 	setShowYearlyBreakdown: (value: boolean) => void;
 	setActiveTab: (
 		value: "individual" | "overview" | "reports" | "branches",
 	) => void;
 	setSidebarCollapsed: (value: boolean) => void;
 	setSidebarWidth: (value: number) => void;
+	setUiZoom: (value: number) => void;
 	setTheme: (value: Theme) => void;
 	setChartTimeRange: (value: string) => void;
 	setOverviewCache: (params: OverviewParams, branches: BranchOverview[]) => void;
@@ -105,12 +110,14 @@ export const useParametersStore = create<ParametersState>()(
 			selectedTicker: "",
 			selectedBranch: "",
 			selectionMode: "all",
+			alphaSystem: "both",
 
 			// UI state
 			showYearlyBreakdown: false,
 			activeTab: "individual",
 			sidebarCollapsed: false,
 			sidebarWidth: 260,
+			uiZoom: 100,
 
 			// Theme - defaults to dark
 			theme: "dark",
@@ -132,10 +139,12 @@ export const useParametersStore = create<ParametersState>()(
 			setSelectedTicker: (value) => set({ selectedTicker: value }),
 			setSelectedBranch: (value) => set({ selectedBranch: value }),
 			setSelectionMode: (value) => set({ selectionMode: value }),
+			setAlphaSystem: (value) => set({ alphaSystem: value }),
 			setShowYearlyBreakdown: (value) => set({ showYearlyBreakdown: value }),
 			setActiveTab: (value) => set({ activeTab: value }),
 			setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
 			setSidebarWidth: (value) => set({ sidebarWidth: value }),
+			setUiZoom: (value) => set({ uiZoom: value }),
 			setTheme: (value) => set({ theme: value }),
 			setChartTimeRange: (value) => set({ chartTimeRange: value }),
 			setOverviewCache: (params, branches) =>
@@ -162,10 +171,12 @@ export const useParametersStore = create<ParametersState>()(
 				selectedTicker: state.selectedTicker,
 				selectedBranch: state.selectedBranch,
 				selectionMode: state.selectionMode,
+				alphaSystem: state.alphaSystem,
 				showYearlyBreakdown: state.showYearlyBreakdown,
 				activeTab: state.activeTab,
 				sidebarCollapsed: state.sidebarCollapsed,
 				sidebarWidth: state.sidebarWidth,
+				uiZoom: state.uiZoom,
 				theme: state.theme,
 				chartTimeRange: state.chartTimeRange,
 			}),
