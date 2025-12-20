@@ -91,6 +91,7 @@ def build_chart_data(
         ))
 
     # Build slope segments (green when slope > threshold, gray otherwise)
+    # Each segment's end includes the first point of the next segment for line continuity
     slope_segments = []
     if 'Slope' in df.columns:
         current_color = None
@@ -107,7 +108,7 @@ def build_chart_data(
                 current_color = color
                 segment_start = int(row['Date'].timestamp())
             elif color != current_color:
-                # End current segment
+                # End current segment at this row (includes transition point)
                 slope_segments.append(SlopeSegment(
                     start=segment_start,
                     end=int(row['Date'].timestamp()),

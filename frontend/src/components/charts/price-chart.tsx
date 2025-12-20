@@ -506,7 +506,8 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 				const segmentStartIdx = data.candles.findIndex((c) => c.time >= segment.start);
 				const segmentEndIdx = data.candles.findIndex((c) => c.time > segment.end);
 
-				const startIdx = Math.max(0, segmentStartIdx - 1);
+				// Don't subtract 1 from startIdx - the backend already includes transition points
+				const startIdx = Math.max(0, segmentStartIdx);
 				const endIdx = segmentEndIdx === -1 ? data.candles.length : segmentEndIdx;
 
 				const segmentCandles = data.candles.slice(startIdx, endIdx);
