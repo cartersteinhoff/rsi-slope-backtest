@@ -155,8 +155,7 @@ export function Sidebar() {
 						</div>
 						<Button
 							variant="outline"
-							size="sm"
-							className="w-full"
+							className="w-full h-8 text-sm"
 							onClick={() => setUiZoom(100)}
 							disabled={uiZoom === 100}
 						>
