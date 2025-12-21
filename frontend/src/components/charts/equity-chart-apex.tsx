@@ -265,7 +265,7 @@ export function EquityChartApex({
 	const equityPointAnnotations = useMemo(() => {
 		const points: NonNullable<ApexOptions["annotations"]>["points"] = [];
 
-		yearlyData.forEach((info, year) => {
+		yearlyData.forEach((info, _year) => {
 			points.push({
 				x: new Date(info.endDate).getTime(),
 				y: info.endEquity,
@@ -294,7 +294,7 @@ export function EquityChartApex({
 	const drawdownPointAnnotations = useMemo(() => {
 		const points: NonNullable<ApexOptions["annotations"]>["points"] = [];
 
-		yearlyData.forEach((info, year) => {
+		yearlyData.forEach((info, _year) => {
 			points.push({
 				x: new Date(info.maxDDDate).getTime(),
 				y: info.maxDD,
@@ -509,7 +509,7 @@ export function EquityChartApex({
 	}, [data]);
 
 	// Get sorted years for the performance cards
-	const sortedYears = useMemo(() => {
+	const _sortedYears = useMemo(() => {
 		return [...yearlyData.entries()].sort((a, b) => a[0] - b[0]);
 	}, [yearlyData]);
 
