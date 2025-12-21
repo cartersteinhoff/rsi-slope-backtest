@@ -53,11 +53,16 @@ const getChartColors = (isDark: boolean) => ({
 	yearLineColor: isDark ? "rgba(100, 100, 100, 0.5)" : "rgba(0, 0, 0, 0.3)",
 });
 
-// Use string date format - this creates ordinal data without calendar gaps
-// When there are gaps in the data (like Oct to Dec), this prevents
-// the chart from creating empty space for the missing months
+// Use string date format for ordinal positioning (no calendar gaps)
 function dateToTime(dateStr: string): Time {
 	return dateStr as Time;
+}
+
+// Format date string for display
+function formatDateStr(dateStr: string): string {
+	const [year, month, day] = dateStr.split('-').map(Number);
+	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	return `${day} ${months[month - 1]} '${String(year).slice(-2)}`;
 }
 
 // Format currency for axis
@@ -84,12 +89,13 @@ export function EquityChart({
 	data,
 	yearlyStats: _yearlyStats,
 	entryDate,
-	systemName,
+	systemName: _systemName,
 	equityHeight: initialEquityHeight = 450,
 	drawdownHeight: initialDrawdownHeight = 250,
 }: EquityChartProps) {
-	// yearlyStats available for future use
+	// yearlyStats and systemName available for future use
 	void _yearlyStats;
+	void _systemName;
 	// Chart refs
 	const equityContainerRef = useRef<HTMLDivElement>(null);
 	const equityChartRef = useRef<IChartApi | null>(null);
@@ -316,20 +322,20 @@ export function EquityChart({
 
 		setAnnotations(newAnnotations);
 
-		// Update entry annotation - manually calculate X position since timeToCoordinate/logicalToCoordinate
-		// return incorrect values. Calculate based on data index ratio and chart dimensions.
+		// Update entry annotation - use data-index interpolation for correct positioning
+		// (timeToCoordinate doesn't work correctly with string-based ordinal dates)
 		const firstLiveIndex = data.findIndex(d => d.is_live);
 		const entryIndex = firstLiveIndex !== -1 ? firstLiveIndex : data.findIndex(d => d.date === entryDate);
 
 		if (entryIndex !== -1 && data.length > 1) {
-			// Get the x coordinates of the first and last data points using the chart's coordinate system
+			// Get X coordinates of first and last data points
 			const firstTime = dateToTime(data[0].date) as Time;
 			const lastTime = dateToTime(data[data.length - 1].date) as Time;
 			const firstX = equityChart.timeScale().timeToCoordinate(firstTime);
 			const lastX = equityChart.timeScale().timeToCoordinate(lastTime);
 
 			if (firstX !== null && lastX !== null && lastX > firstX) {
-				// Calculate the entry X position by interpolating between first and last
+				// Calculate entry position by interpolating based on data index
 				const dataRatio = entryIndex / (data.length - 1);
 				const chartWidth = lastX - firstX;
 				const entryXCoord = firstX + (dataRatio * chartWidth);
@@ -484,12 +490,12 @@ export function EquityChart({
 				mode: CrosshairMode.Normal,
 			},
 			localization: {
-				// Custom time formatter for crosshair tooltip - parse our YYYY-MM-DD strings correctly
+				// Format Y-axis values as 100k, 200k, etc.
+				priceFormatter: (price: number) => formatMoney(price),
+				// Custom time formatter for crosshair tooltip - format YYYY-MM-DD strings
 				timeFormatter: (time: unknown) => {
 					if (typeof time === 'string' && time.match(/^\d{4}-\d{2}-\d{2}$/)) {
-						const [year, month, day] = time.split('-').map(Number);
-						const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-						return `${day} ${months[month - 1]} '${String(year).slice(-2)}`;
+						return formatDateStr(time);
 					}
 					return String(time);
 				},
@@ -554,7 +560,7 @@ export function EquityChart({
 			color: colors.equityColor,
 			lineWidth: 2,
 			priceLineVisible: false,
-			lastValueVisible: true,
+			lastValueVisible: false,
 			priceScaleId: "left",
 		});
 		equitySeries.setData(allData);
@@ -604,12 +610,10 @@ export function EquityChart({
 				mode: CrosshairMode.Normal,
 			},
 			localization: {
-				// Custom time formatter for crosshair tooltip - parse our YYYY-MM-DD strings correctly
+				// Custom time formatter for crosshair tooltip - format YYYY-MM-DD strings
 				timeFormatter: (time: unknown) => {
 					if (typeof time === 'string' && time.match(/^\d{4}-\d{2}-\d{2}$/)) {
-						const [year, month, day] = time.split('-').map(Number);
-						const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-						return `${day} ${months[month - 1]} '${String(year).slice(-2)}`;
+						return formatDateStr(time);
 					}
 					return String(time);
 				},
