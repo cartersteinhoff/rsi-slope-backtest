@@ -172,10 +172,10 @@ export function EquityChartApex({
 		return new Date(entryDate).getTime();
 	}, [data, entryDate]);
 
-	// Get year boundaries for annotations (include 2020)
+	// Get year boundaries for annotations (starting from 2021 since chart starts at 2020)
 	const yearBoundaries = useMemo(() => {
 		const years = [...new Set(filteredData.map(d => new Date(d.date).getFullYear()))].sort();
-		return years.map(year => {
+		return years.slice(1).map(year => {
 			const firstDay = filteredData.find(d => new Date(d.date).getFullYear() === year);
 			return {
 				year,
@@ -241,17 +241,18 @@ export function EquityChartApex({
 		const annotations: NonNullable<ApexOptions["annotations"]>["xaxis"] = [];
 
 		// Entry line annotation
+		const entryDateFormatted = new Date(entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 		annotations.push({
 			x: entryTimestamp,
 			borderColor: colors.entryLineColor,
 			borderWidth: 3,
 			label: {
-				text: "Entry",
+				text: `Entry\n${entryDateFormatted}`,
 				borderColor: colors.entryLineColor,
 				style: {
 					color: "#fff",
 					background: colors.entryLineColor,
-					fontSize: "14px",
+					fontSize: "12px",
 					fontWeight: "bold",
 					padding: {
 						left: 8,
@@ -261,7 +262,7 @@ export function EquityChartApex({
 					},
 				},
 				position: "top",
-				offsetY: 0,
+				offsetY: 150,
 			},
 		});
 
@@ -276,27 +277,80 @@ export function EquityChartApex({
 		});
 
 		return annotations;
-	}, [entryTimestamp, yearBoundaries, colors]);
+	}, [entryTimestamp, entryDate, yearBoundaries, colors]);
+
+	// Year labels positioned in the middle of each year segment
+	const yearLabelAnnotations = useMemo(() => {
+		const points: NonNullable<ApexOptions["annotations"]>["points"] = [];
+		
+		yearlyData.forEach((info, year) => {
+			// Calculate midpoint of the year
+			const startTime = new Date(info.startDate).getTime();
+			const endTime = new Date(info.endDate).getTime();
+			const midTime = startTime + (endTime - startTime) / 2;
+			
+			points.push({
+				x: midTime,
+				y: 0,
+				marker: { size: 0 },
+				label: {
+					text: String(year),
+					borderColor: "transparent",
+					style: {
+						color: colors.textColor,
+						background: "transparent",
+						fontSize: "16px",
+						fontWeight: "bold",
+					},
+					offsetY: 20,
+					position: "bottom",
+				},
+			});
+		});
+		
+		return points;
+	}, [yearlyData, colors.textColor]);
 
 	// Point annotations for yearly profit percentages on equity chart
-	// Position at the year's own divider line
+	// Position at the year divider lines
 	const equityPointAnnotations = useMemo(() => {
 		const points: NonNullable<ApexOptions["annotations"]>["points"] = [];
 
 		yearlyData.forEach((info, year) => {
-			// Find this year's divider line
-			const yearStart = yearBoundaries.find(b => b.year === year);
+			// Find next year's boundary (the divider line at end of this year)
+			const nextYearBoundary = yearBoundaries.find(b => b.year === year + 1);
 			
-			if (yearStart) {
-				// Position at this year's divider line
+			if (nextYearBoundary) {
+				// Position at the divider line
 				points.push({
-					x: yearStart.timestamp,
+					x: nextYearBoundary.timestamp,
 					y: info.endEquity,
 					marker: {
 						size: 0,
 					},
 					label: {
-						text: `+${info.profitPct.toFixed(1)}%`,
+						text: `${info.profitPct.toFixed(1)}%`,
+						borderColor: "transparent",
+						style: {
+							color: "#22c55e",
+							background: "transparent",
+							fontSize: "14px",
+							fontWeight: "bold",
+						},
+						offsetY: -15,
+						offsetX: 0,
+					},
+				});
+			} else {
+				// Current year (no next divider) - position at end of data
+				points.push({
+					x: new Date(info.endDate).getTime(),
+					y: info.endEquity,
+					marker: {
+						size: 0,
+					},
+					label: {
+						text: `${info.profitPct.toFixed(1)}%`,
 						borderColor: "transparent",
 						style: {
 							color: "#22c55e",
@@ -380,13 +434,7 @@ export function EquityChartApex({
 				type: "datetime",
 				min: new Date("2020-01-01").getTime(),
 				labels: {
-					style: { colors: colors.textColor },
-					datetimeFormatter: {
-						year: "yyyy",
-						month: "MMM 'yy",
-						day: "dd MMM",
-					},
-					datetimeUTC: false,
+					show: false,
 				},
 				axisBorder: { show: false },
 				axisTicks: { show: false },
@@ -413,7 +461,7 @@ export function EquityChartApex({
 			},
 			annotations: {
 				xaxis: xAxisAnnotations,
-				points: equityPointAnnotations,
+				points: [...equityPointAnnotations, ...yearLabelAnnotations],
 				position: "front",
 			},
 			tooltip: {
@@ -432,7 +480,7 @@ export function EquityChartApex({
 				show: false,
 			},
 		}),
-		[equityHeight, colors, xAxisAnnotations, equityPointAnnotations, isDark]
+		[equityHeight, colors, xAxisAnnotations, equityPointAnnotations, yearLabelAnnotations, isDark]
 	);
 
 	// Drawdown chart options
@@ -471,8 +519,9 @@ export function EquityChartApex({
 			xaxis: {
 				type: "datetime",
 				min: new Date("2020-01-01").getTime(),
+				tickAmount: 6,
 				labels: {
-					style: { colors: colors.textColor },
+					style: { colors: colors.textColor, fontSize: "16px", fontWeight: 600 },
 					datetimeFormatter: {
 						year: "yyyy",
 						month: "MMM 'yy",
