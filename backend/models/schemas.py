@@ -99,3 +99,53 @@ class TickersResponse(BaseModel):
 
 class BranchesResponse(BaseModel):
     branches: list[str]
+
+
+# Equity Chart Schemas
+
+class EquityDataPoint(BaseModel):
+    date: str  # ISO format YYYY-MM-DD
+    equity: float
+    daily_return: float  # Percentage
+    drawdown_pct: float
+    is_live: bool  # True if from live trading, False if backtest
+
+
+class EquityYearlyStats(BaseModel):
+    year: int
+    profit_pct: float
+    max_drawdown_pct: float
+    start_equity: float
+    end_equity: float
+
+
+class EquityCurveResponse(BaseModel):
+    system_name: str
+    data: list[EquityDataPoint]
+    yearly_stats: list[EquityYearlyStats]
+    entry_date: str  # ISO date when live trading started
+
+
+class DateRangeResponse(BaseModel):
+    min_date: str
+    max_date: str
+
+
+class AlpacaAccountResponse(BaseModel):
+    account_id: str
+    cash: float
+    portfolio_value: float
+    buying_power: float
+    equity: float
+    last_equity: float
+    status: str
+
+
+class AlpacaPositionResponse(BaseModel):
+    symbol: str
+    qty: float
+    avg_entry_price: float
+    current_price: float
+    market_value: float
+    unrealized_pl: float
+    unrealized_plpc: float

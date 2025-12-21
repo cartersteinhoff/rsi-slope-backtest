@@ -108,3 +108,53 @@ export interface AnalysisParams {
 	neg_threshold: number;
 	signal_type: SignalType;
 }
+
+// Equity Chart Types
+
+export interface EquityDataPoint {
+	date: string; // ISO format YYYY-MM-DD
+	equity: number;
+	daily_return: number; // Percentage
+	drawdown_pct: number;
+	is_live: boolean; // True if from live trading, False if backtest
+}
+
+export interface EquityYearlyStats {
+	year: number;
+	profit_pct: number;
+	max_drawdown_pct: number;
+	start_equity: number;
+	end_equity: number;
+}
+
+export interface EquityCurveResponse {
+	system_name: string;
+	data: EquityDataPoint[];
+	yearly_stats: EquityYearlyStats[];
+	entry_date: string; // ISO date when live trading started
+}
+
+export interface DateRangeResponse {
+	min_date: string;
+	max_date: string;
+}
+
+export interface AlpacaAccount {
+	account_id: string;
+	cash: number;
+	portfolio_value: number;
+	buying_power: number;
+	equity: number;
+	last_equity: number;
+	status: string;
+}
+
+export interface AlpacaPosition {
+	symbol: string;
+	qty: number;
+	avg_entry_price: number;
+	current_price: number;
+	market_value: number;
+	unrealized_pl: number;
+	unrealized_plpc: number;
+}

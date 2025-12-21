@@ -5,6 +5,7 @@ import { IndividualPage } from "@/pages/individual";
 import { OverviewPage } from "@/pages/overview";
 import { ReportsPage } from "@/pages/reports";
 import { BranchOverviewsPage } from "@/pages/branch-overviews";
+import { EquityPage } from "@/pages/equity";
 import { useParametersStore } from "@/stores/parameters-store";
 
 const queryClient = new QueryClient({
@@ -29,7 +30,7 @@ function AppContent() {
 						value={activeTab}
 						onValueChange={(value) =>
 							setActiveTab(
-								value as "individual" | "overview" | "reports" | "branches",
+								value as "individual" | "overview" | "reports" | "branches" | "equity",
 							)
 						}
 					>
@@ -38,6 +39,7 @@ function AppContent() {
 							<TabsTrigger value="overview">Overall Results</TabsTrigger>
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>
 							<TabsTrigger value="branches">Branch Overviews</TabsTrigger>
+							<TabsTrigger value="equity">Equity Chart</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="individual" className="mt-0">
@@ -54,6 +56,10 @@ function AppContent() {
 
 						<TabsContent value="branches" className="mt-0">
 							<BranchOverviewsPage />
+						</TabsContent>
+
+						<TabsContent value="equity" className="mt-0">
+							<EquityPage />
 						</TabsContent>
 					</Tabs>
 				</div>

@@ -49,7 +49,7 @@ interface ParametersState {
 
 	// UI state
 	showYearlyBreakdown: boolean;
-	activeTab: "individual" | "overview" | "reports" | "branches";
+	activeTab: "individual" | "overview" | "reports" | "branches" | "equity";
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
 	uiZoom: number;
@@ -77,7 +77,7 @@ interface ParametersState {
 	setAlphaSystem: (value: AlphaSystem) => void;
 	setShowYearlyBreakdown: (value: boolean) => void;
 	setActiveTab: (
-		value: "individual" | "overview" | "reports" | "branches",
+		value: "individual" | "overview" | "reports" | "branches" | "equity",
 	) => void;
 	setSidebarCollapsed: (value: boolean) => void;
 	setSidebarWidth: (value: number) => void;

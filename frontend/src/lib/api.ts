@@ -4,6 +4,10 @@ import type {
 	IndividualAnalysisResponse,
 	OverviewResponse,
 	AnalysisParams,
+	EquityCurveResponse,
+	DateRangeResponse,
+	AlpacaAccount,
+	AlpacaPosition,
 } from "@/types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -66,4 +70,48 @@ export function getOverviewStreamUrl(
 		signal_type: params.signal_type,
 	});
 	return `${API_BASE}/analysis/overview/stream?${searchParams}`;
+}
+
+// Equity Chart API
+
+export interface EquityCurveParams {
+	start_date?: string;
+	end_date?: string;
+	initial_equity?: number;
+}
+
+export async function getEquityCurve(
+	params?: EquityCurveParams,
+): Promise<EquityCurveResponse> {
+	const searchParams = new URLSearchParams();
+	if (params?.start_date) searchParams.set("start_date", params.start_date);
+	if (params?.end_date) searchParams.set("end_date", params.end_date);
+	if (params?.initial_equity)
+		searchParams.set("initial_equity", params.initial_equity.toString());
+
+	const query = searchParams.toString();
+	return fetchJson<EquityCurveResponse>(
+		`${API_BASE}/equity/curve${query ? `?${query}` : ""}`,
+	);
+}
+
+export async function getEquityDateRange(): Promise<DateRangeResponse> {
+	return fetchJson<DateRangeResponse>(`${API_BASE}/equity/date-range`);
+}
+
+export async function getAlpacaAccount(): Promise<AlpacaAccount> {
+	return fetchJson<AlpacaAccount>(`${API_BASE}/equity/alpaca/account`);
+}
+
+export async function getAlpacaPositions(): Promise<AlpacaPosition[]> {
+	return fetchJson<AlpacaPosition[]>(`${API_BASE}/equity/alpaca/positions`);
+}
+
+export async function getAlpacaStatus(): Promise<{
+	configured: boolean;
+	connected: boolean;
+	message?: string;
+	account_status?: string;
+}> {
+	return fetchJson(`${API_BASE}/equity/alpaca/status`);
 }
