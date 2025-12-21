@@ -60,7 +60,7 @@ export function EquityChartApex({
 	yearlyStats: _yearlyStats,
 	entryDate,
 	equityHeight: initialEquityHeight = 450,
-	drawdownHeight: initialDrawdownHeight = 250,
+	drawdownHeight: initialDrawdownHeight = 350,
 }: EquityChartApexProps) {
 	void _yearlyStats;
 
@@ -143,20 +143,25 @@ export function EquityChartApex({
 		};
 	}, []);
 
+	// Filter data to start from 2020 (exclude partial years 2018-2019)
+	const filteredData = useMemo(() => {
+		return data.filter((d) => new Date(d.date).getFullYear() >= 2020);
+	}, [data]);
+
 	// Convert data to ApexCharts format with timestamps
 	const equitySeriesData = useMemo(() => {
-		return data.map((d) => ({
+		return filteredData.map((d) => ({
 			x: new Date(d.date).getTime(),
 			y: d.equity,
 		}));
-	}, [data]);
+	}, [filteredData]);
 
 	const drawdownSeriesData = useMemo(() => {
-		return data.map((d) => ({
+		return filteredData.map((d) => ({
 			x: new Date(d.date).getTime(),
 			y: d.drawdown_pct,
 		}));
-	}, [data]);
+	}, [filteredData]);
 
 	// Find entry timestamp
 	const entryTimestamp = useMemo(() => {
@@ -167,22 +172,23 @@ export function EquityChartApex({
 		return new Date(entryDate).getTime();
 	}, [data, entryDate]);
 
-	// Get year boundaries for annotations
+	// Get year boundaries for annotations (include 2020)
 	const yearBoundaries = useMemo(() => {
-		const years = [...new Set(data.map(d => new Date(d.date).getFullYear()))].sort();
-		return years.slice(1).map(year => {
-			const firstDay = data.find(d => new Date(d.date).getFullYear() === year);
+		const years = [...new Set(filteredData.map(d => new Date(d.date).getFullYear()))].sort();
+		return years.map(year => {
+			const firstDay = filteredData.find(d => new Date(d.date).getFullYear() === year);
 			return {
 				year,
 				timestamp: firstDay ? new Date(firstDay.date).getTime() : new Date(`${year}-01-02`).getTime(),
 			};
 		});
-	}, [data]);
+	}, [filteredData]);
 
 	// Calculate yearly stats for cards and annotations
 	const yearlyData = useMemo(() => {
 		const years: Map<number, {
 			startEquity: number;
+			startDate: string;
 			endEquity: number;
 			endDate: string;
 			maxDD: number;
@@ -190,14 +196,16 @@ export function EquityChartApex({
 			profitPct: number;
 		}> = new Map();
 
-		// First pass: collect end equity and max DD for each year
+		// Collect start equity, end equity, and max DD for each year
 		for (const point of data) {
 			const year = new Date(point.date).getFullYear();
 			const existing = years.get(year);
 
 			if (!existing) {
+				// First point of this year - use as start equity
 				years.set(year, {
-					startEquity: 0, // Will be set in second pass
+					startEquity: point.equity,
+					startDate: point.date,
 					endEquity: point.equity,
 					endDate: point.date,
 					maxDD: point.drawdown_pct,
@@ -214,29 +222,13 @@ export function EquityChartApex({
 			}
 		}
 
-		// Second pass: set start equity from previous year's end equity
-		const sortedYears = [...years.keys()].sort((a, b) => a - b);
-		for (let i = 0; i < sortedYears.length; i++) {
-			const year = sortedYears[i];
-			const info = years.get(year)!;
-			
-			if (i === 0) {
-				// First year: use the first data point of that year as start
-				const firstPoint = data.find(d => new Date(d.date).getFullYear() === year);
-				info.startEquity = firstPoint?.equity ?? info.endEquity;
-			} else {
-				// Subsequent years: use previous year's end equity as start
-				const prevYear = sortedYears[i - 1];
-				info.startEquity = years.get(prevYear)!.endEquity;
-			}
-		}
-
 		// Calculate profit percentages
 		years.forEach((info) => {
 			info.profitPct = ((info.endEquity - info.startEquity) / info.startEquity) * 100;
 		});
 
-		// Exclude 2019 from display (partial year)
+		// Exclude partial years from display
+		years.delete(2018);
 		years.delete(2019);
 
 		return years;
@@ -287,33 +279,40 @@ export function EquityChartApex({
 	}, [entryTimestamp, yearBoundaries, colors]);
 
 	// Point annotations for yearly profit percentages on equity chart
+	// Position at the year's own divider line
 	const equityPointAnnotations = useMemo(() => {
 		const points: NonNullable<ApexOptions["annotations"]>["points"] = [];
 
-		yearlyData.forEach((info, _year) => {
-			points.push({
-				x: new Date(info.endDate).getTime(),
-				y: info.endEquity,
-				marker: {
-					size: 0,
-				},
-				label: {
-					text: `${info.profitPct >= 0 ? "+" : ""}${info.profitPct.toFixed(1)}%`,
-					borderColor: "transparent",
-					style: {
-						color: "#22c55e",
-						background: "transparent",
-						fontSize: "14px",
-						fontWeight: "bold",
+		yearlyData.forEach((info, year) => {
+			// Find this year's divider line
+			const yearStart = yearBoundaries.find(b => b.year === year);
+			
+			if (yearStart) {
+				// Position at this year's divider line
+				points.push({
+					x: yearStart.timestamp,
+					y: info.endEquity,
+					marker: {
+						size: 0,
 					},
-					offsetY: -15,
-					offsetX: 0,
-				},
-			});
+					label: {
+						text: `+${info.profitPct.toFixed(1)}%`,
+						borderColor: "transparent",
+						style: {
+							color: "#22c55e",
+							background: "transparent",
+							fontSize: "14px",
+							fontWeight: "bold",
+						},
+						offsetY: -15,
+						offsetX: 0,
+					},
+				});
+			}
 		});
 
 		return points;
-	}, [yearlyData]);
+	}, [yearlyData, yearBoundaries]);
 
 	// Point annotations for max drawdown percentages on drawdown chart
 	const drawdownPointAnnotations = useMemo(() => {
@@ -379,6 +378,7 @@ export function EquityChartApex({
 			colors: [colors.equityColor],
 			xaxis: {
 				type: "datetime",
+				min: new Date("2020-01-01").getTime(),
 				labels: {
 					style: { colors: colors.textColor },
 					datetimeFormatter: {
@@ -386,6 +386,7 @@ export function EquityChartApex({
 						month: "MMM 'yy",
 						day: "dd MMM",
 					},
+					datetimeUTC: false,
 				},
 				axisBorder: { show: false },
 				axisTicks: { show: false },
@@ -408,10 +409,12 @@ export function EquityChartApex({
 			grid: {
 				borderColor: colors.gridColor,
 				strokeDashArray: 0,
+				clipMarkers: false,
 			},
 			annotations: {
 				xaxis: xAxisAnnotations,
 				points: equityPointAnnotations,
+				position: "front",
 			},
 			tooltip: {
 				theme: isDark ? "dark" : "light",
@@ -467,6 +470,7 @@ export function EquityChartApex({
 			},
 			xaxis: {
 				type: "datetime",
+				min: new Date("2020-01-01").getTime(),
 				labels: {
 					style: { colors: colors.textColor },
 					datetimeFormatter: {
@@ -474,6 +478,7 @@ export function EquityChartApex({
 						month: "MMM 'yy",
 						day: "dd MMM",
 					},
+					datetimeUTC: false,
 				},
 				axisBorder: { show: false },
 				axisTicks: { show: false },
@@ -520,18 +525,6 @@ export function EquityChartApex({
 		}),
 		[drawdownHeight, colors, xAxisAnnotations, drawdownPointAnnotations, isDark]
 	);
-
-	// Summary metrics
-	const summaryMetrics = useMemo(() => {
-		if (!data.length) return null;
-
-		const startEquity = data[0].equity;
-		const endEquity = data[data.length - 1].equity;
-		const totalReturn = ((endEquity - startEquity) / startEquity) * 100;
-		const maxDrawdown = Math.max(...data.map((d) => d.drawdown_pct));
-
-		return { startEquity, endEquity, totalReturn, maxDrawdown };
-	}, [data]);
 
 	return (
 		<div className="space-y-2">
@@ -640,41 +633,6 @@ export function EquityChartApex({
 					onDoubleClick={() => handleResizeDoubleClick("drawdown")}
 				/>
 			</div>
-
-			{/* Summary Stats */}
-			{summaryMetrics && (
-				<div className="grid grid-cols-4 gap-3 text-center mt-4">
-					<div className="bg-card rounded-lg p-2 border">
-						<div className="text-xs text-muted-foreground">Start</div>
-						<div className="text-sm font-bold">
-							{formatMoney(summaryMetrics.startEquity)}
-						</div>
-					</div>
-					<div className="bg-card rounded-lg p-2 border">
-						<div className="text-xs text-muted-foreground">Current</div>
-						<div className="text-sm font-bold">
-							{formatMoney(summaryMetrics.endEquity)}
-						</div>
-					</div>
-					<div className="bg-card rounded-lg p-2 border">
-						<div className="text-xs text-muted-foreground">Total Return</div>
-						<div
-							className={`text-sm font-bold ${
-								summaryMetrics.totalReturn >= 0 ? "text-green-600" : "text-red-600"
-							}`}
-						>
-							{summaryMetrics.totalReturn >= 0 ? "+" : ""}
-							{summaryMetrics.totalReturn.toFixed(1)}%
-						</div>
-					</div>
-					<div className="bg-card rounded-lg p-2 border">
-						<div className="text-xs text-muted-foreground">Max Drawdown</div>
-						<div className="text-sm font-bold text-red-600">
-							-{summaryMetrics.maxDrawdown.toFixed(1)}%
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }
