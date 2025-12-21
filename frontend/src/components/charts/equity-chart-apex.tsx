@@ -71,6 +71,8 @@ export function EquityChartApex({
 	const isResizing = useRef<false | "equity" | "drawdown">(false);
 	const resizeStartY = useRef(0);
 	const resizeStartHeight = useRef(0);
+	const [hoveredYear, setHoveredYear] = useState<number | null>(null);
+	const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
 
 	// Listen for theme changes
 	useEffect(() => {
@@ -364,6 +366,14 @@ export function EquityChartApex({
 				axisTicks: { show: false },
 			},
 			yaxis: {
+				title: {
+					text: "Equity ($)",
+					style: {
+						color: colors.textColor,
+						fontSize: "12px",
+						fontWeight: 500,
+					},
+				},
 				labels: {
 					style: { colors: colors.textColor },
 					formatter: (value: number) => formatMoney(value),
@@ -444,6 +454,14 @@ export function EquityChartApex({
 				axisTicks: { show: false },
 			},
 			yaxis: {
+				title: {
+					text: "Drawdown (%)",
+					style: {
+						color: colors.textColor,
+						fontSize: "12px",
+						fontWeight: 500,
+					},
+				},
 				reversed: true,
 				labels: {
 					style: { colors: colors.textColor },
@@ -497,92 +515,98 @@ export function EquityChartApex({
 
 	return (
 		<div className="space-y-2">
-			{/* Yearly Performance Cards */}
-			<div className="flex gap-2 overflow-x-auto pb-1">
-				{sortedYears.map(([year, info]) => (
-					<div
-						key={year}
-						className="flex-shrink-0 bg-card border rounded-lg px-3 py-2 min-w-[120px]"
-					>
-						<div className="text-sm font-bold text-center mb-1">{year}</div>
-						<div className="flex gap-2 text-center">
-							<div className="flex-1">
-								<div
-									className={`font-bold text-sm ${
-										info.profitPct >= 0 ? "text-green-600" : "text-red-600"
-									}`}
-								>
-									{info.profitPct >= 0 ? "+" : ""}
-									{info.profitPct.toFixed(1)}%
-								</div>
-								<div className="text-red-500 font-medium text-xs">
-									-{info.maxDD.toFixed(1)}%
-								</div>
-							</div>
-							{SP500_RETURNS[year] !== undefined && (
-								<div className="flex-1 border-l border-gray-300 dark:border-gray-600 pl-2">
-									<div
-										className={`font-bold text-sm ${
-											SP500_RETURNS[year] >= 0 ? "text-blue-500" : "text-red-600"
-										}`}
-									>
-										{SP500_RETURNS[year] >= 0 ? "+" : ""}
-										{SP500_RETURNS[year].toFixed(1)}%
-									</div>
-									<div className="text-red-500 font-medium text-xs">
-										-{SP500_DRAWDOWNS[year]?.toFixed(1) ?? "?"}%
-									</div>
-								</div>
-							)}
-						</div>
-					</div>
-				))}
+			{/* Equity Chart */}
+			<div className="relative border bg-card rounded">
+				<Chart
+					options={equityOptions}
+					series={[{ name: "Equity", data: equitySeriesData }]}
+					type="line"
+					height={equityHeight}
+				/>
+				{/* Invisible hover overlay to detect year segments */}
+				<div
+					className="absolute inset-0 z-10"
+					style={{ pointerEvents: "all" }}
+					onMouseMove={(e) => {
+						const rect = e.currentTarget.getBoundingClientRect();
+						const x = e.clientX - rect.left;
+						const chartWidth = rect.width - 60; // Account for margins
+						const chartLeft = 45; // Left margin
+
+						if (x < chartLeft || x > chartLeft + chartWidth) {
+							setHoveredYear(null);
+							return;
+						}
+
+						// Find which year segment we're in
+						const years = [...yearlyData.keys()].sort((a, b) => a - b);
+						const segmentWidth = chartWidth / years.length;
+						const segmentIndex = Math.floor((x - chartLeft) / segmentWidth);
+						const year = years[Math.min(segmentIndex, years.length - 1)];
+
+						setHoveredYear(year);
+						setHoverPosition({ x: e.clientX, y: e.clientY });
+					}}
+					onMouseLeave={() => {
+						setHoveredYear(null);
+						setHoverPosition(null);
+					}}
+				/>
+				{/* Resize handle */}
+				<div
+					className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-20 transition-colors"
+					onMouseDown={(e) => handleResizeMouseDown(e, "equity")}
+					onDoubleClick={() => handleResizeDoubleClick("equity")}
+				/>
 			</div>
 
-			{/* Equity Chart */}
-			<div className="flex">
-				<div className="flex items-center justify-center w-5">
-					<span className="-rotate-90 text-xs font-medium text-muted-foreground whitespace-nowrap">
-						Equity ($)
-					</span>
+			{/* Hover Tooltip */}
+			{hoveredYear !== null && hoverPosition && yearlyData.has(hoveredYear) && (
+				<div
+					className="fixed bg-gray-900 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
+					style={{
+						left: hoverPosition.x + 15,
+						top: hoverPosition.y - 100,
+					}}
+				>
+					<div className="text-center font-bold text-lg mb-2 border-b border-gray-600 pb-1">
+						{hoveredYear}
+					</div>
+					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+						<div className="text-gray-400">System:</div>
+						<div className={yearlyData.get(hoveredYear)!.profitPct >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
+							{yearlyData.get(hoveredYear)!.profitPct >= 0 ? "+" : ""}{yearlyData.get(hoveredYear)!.profitPct.toFixed(1)}%
+						</div>
+						<div className="text-gray-400">Max DD:</div>
+						<div className="text-red-400 font-semibold">-{yearlyData.get(hoveredYear)!.maxDD.toFixed(1)}%</div>
+						{SP500_RETURNS[hoveredYear] !== undefined && (
+							<>
+								<div className="text-gray-400">SPY:</div>
+								<div className={SP500_RETURNS[hoveredYear] >= 0 ? "text-blue-400 font-semibold" : "text-red-400 font-semibold"}>
+									{SP500_RETURNS[hoveredYear] >= 0 ? "+" : ""}{SP500_RETURNS[hoveredYear].toFixed(1)}%
+								</div>
+								<div className="text-gray-400">SPY DD:</div>
+								<div className="text-red-400 font-semibold">-{SP500_DRAWDOWNS[hoveredYear]?.toFixed(1) ?? "?"}%</div>
+							</>
+						)}
+					</div>
 				</div>
-				<div className="relative border bg-card rounded flex-1">
-					<Chart
-						options={equityOptions}
-						series={[{ name: "Equity", data: equitySeriesData }]}
-						type="line"
-						height={equityHeight}
-					/>
-					{/* Resize handle */}
-					<div
-						className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-20 transition-colors"
-						onMouseDown={(e) => handleResizeMouseDown(e, "equity")}
-						onDoubleClick={() => handleResizeDoubleClick("equity")}
-					/>
-				</div>
-			</div>
+			)}
 
 			{/* Drawdown Chart */}
-			<div className="flex">
-				<div className="flex items-center justify-center w-5">
-					<span className="-rotate-90 text-xs font-medium text-muted-foreground whitespace-nowrap">
-						Drawdown (%)
-					</span>
-				</div>
-				<div className="relative border bg-card rounded flex-1">
-					<Chart
-						options={drawdownOptions}
-						series={[{ name: "Drawdown", data: drawdownSeriesData }]}
-						type="area"
-						height={drawdownHeight}
-					/>
-					{/* Resize handle */}
-					<div
-						className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-20 transition-colors"
-						onMouseDown={(e) => handleResizeMouseDown(e, "drawdown")}
-						onDoubleClick={() => handleResizeDoubleClick("drawdown")}
-					/>
-				</div>
+			<div className="relative border bg-card rounded">
+				<Chart
+					options={drawdownOptions}
+					series={[{ name: "Drawdown", data: drawdownSeriesData }]}
+					type="area"
+					height={drawdownHeight}
+				/>
+				{/* Resize handle */}
+				<div
+					className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-20 transition-colors"
+					onMouseDown={(e) => handleResizeMouseDown(e, "drawdown")}
+					onDoubleClick={() => handleResizeDoubleClick("drawdown")}
+				/>
 			</div>
 
 			{/* Summary Stats */}
