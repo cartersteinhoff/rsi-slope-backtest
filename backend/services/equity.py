@@ -13,8 +13,9 @@ from .config import EQUITY_DATA_PATH, LIVE_ENTRY_DATE, has_alpaca_credentials
 @lru_cache(maxsize=1)
 def _load_equity_csv() -> pd.DataFrame:
     """Load and cache the equity data CSV."""
-    df = pd.read_csv(EQUITY_DATA_PATH, skiprows=1)  # Skip the title row
-    df.columns = ["Date", "Portfolio_Return", "Active_Branches"]
+    df = pd.read_csv(EQUITY_DATA_PATH)
+    # Only keep Date and Portfolio_Return columns
+    df = df[["Date", "Portfolio_Return"]].copy()
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.sort_values("Date").reset_index(drop=True)
     return df
