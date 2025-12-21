@@ -276,7 +276,7 @@ export function EquityChartApex({
 					style: {
 						color: "#22c55e",
 						background: "transparent",
-						fontSize: "12px",
+						fontSize: "14px",
 						fontWeight: "bold",
 					},
 					offsetY: -15,
@@ -305,7 +305,7 @@ export function EquityChartApex({
 					style: {
 						color: "#ef4444",
 						background: "transparent",
-						fontSize: "12px",
+						fontSize: "14px",
 						fontWeight: "bold",
 					},
 					offsetY: 15,
@@ -427,7 +427,8 @@ export function EquityChartApex({
 			colors: [colors.drawdownLine],
 			fill: {
 				type: "solid",
-				opacity: 0.4,
+				colors: ["#ef4444"],
+				opacity: 0.25,
 			},
 			xaxis: {
 				type: "datetime",
