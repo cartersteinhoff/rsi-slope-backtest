@@ -21,3 +21,4 @@ railway.toml
 
 # Cloned repos
 slope-indicator-poc/
+.playwright-mcp/

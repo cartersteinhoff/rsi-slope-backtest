@@ -281,7 +281,7 @@ export function EquityChart({
 
 			if (xCoord === null || xCoord < 80 || xCoord > containerWidth - 80) return;
 
-			// Get y position on equity chart
+			// Get y position on equity chart using priceToCoordinate
 			const equityYCoord = equitySeries.priceToCoordinate(info.endEquity);
 
 			// Get y position on drawdown chart for max DD
@@ -861,9 +861,12 @@ export function EquityChart({
 
 				{/* On-chart percentage annotations with arrows */}
 				{annotations.map((ann) => {
-					// Position just above the equity line at the year end point
-					// ann.equityY is the pixel Y coordinate of the line at that point
-					const annotationY = Math.max(20, ann.equityY - 2);
+					// Apply correction: priceToCoordinate gives values too low (high on screen)
+					// for upper parts of chart. Add correction proportional to position.
+					const correctionFactor = 0.15; // Adjust if needed
+					const correction = (equityHeight - ann.equityY) * correctionFactor;
+					const correctedY = ann.equityY + correction;
+					const annotationY = Math.max(25, correctedY - 2);
 					return (
 						<div
 							key={`chart-pct-${ann.year}`}
