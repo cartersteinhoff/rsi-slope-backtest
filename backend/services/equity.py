@@ -3,11 +3,11 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 from functools import lru_cache
 
-from .config import EQUITY_DATA_PATH, LIVE_ENTRY_DATE
+from .config import EQUITY_DATA_PATH, LIVE_ENTRY_DATE, has_alpaca_credentials
 
 
 @lru_cache(maxsize=1)
@@ -20,6 +20,42 @@ def _load_equity_csv() -> pd.DataFrame:
     return df
 
 
+def _fetch_alpaca_history(start_date: date) -> Optional[pd.DataFrame]:
+    """Fetch portfolio history from Alpaca API starting from the given date."""
+    if not has_alpaca_credentials():
+        return None
+
+    try:
+        from .alpaca_client import get_alpaca_client
+        client = get_alpaca_client()
+
+        history = client.get_portfolio_history(
+            period="all",
+            timeframe="1D",
+            start_date=datetime.combine(start_date, datetime.min.time()),
+        )
+
+        if not history["timestamps"]:
+            return None
+
+        # Convert timestamps to dates and build DataFrame
+        dates = [datetime.fromtimestamp(ts).date() for ts in history["timestamps"]]
+
+        df = pd.DataFrame({
+            "Date": pd.to_datetime(dates),
+            "equity": history["equity"],
+            "profit_loss_pct": history["profit_loss_pct"],
+        })
+
+        # Calculate daily returns from profit/loss percentage
+        df["daily_return"] = df["profit_loss_pct"].diff().fillna(0) / 100
+
+        return df
+    except Exception as e:
+        print(f"Error fetching Alpaca history: {e}")
+        return None
+
+
 def compute_equity_curve(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
@@ -28,13 +64,53 @@ def compute_equity_curve(
     """
     Compute equity curve from daily returns.
 
+    Combines:
+    - Historical backtest data from CSV (before entry date)
+    - Live trading data from Alpaca API (from entry date onwards)
+
     Returns:
         dict with keys:
         - data: list of {date, equity, daily_return, drawdown_pct, is_live}
         - yearly_stats: list of {year, profit_pct, max_drawdown_pct, start_equity, end_equity}
         - entry_date: ISO date string when live trading started
     """
-    df = _load_equity_csv().copy()
+    # Load CSV data (historical backtest)
+    csv_df = _load_equity_csv().copy()
+
+    entry_ts = pd.Timestamp(LIVE_ENTRY_DATE)
+
+    # Get historical data (before entry date)
+    historical_df = csv_df[csv_df["Date"] < entry_ts].copy()
+    historical_df["daily_return"] = historical_df["Portfolio_Return"]
+    historical_df["is_live"] = False
+
+    # Compute equity for historical data
+    if not historical_df.empty:
+        historical_df["equity"] = (1 + historical_df["daily_return"]).cumprod() * initial_equity
+        last_historical_equity = historical_df["equity"].iloc[-1]
+    else:
+        last_historical_equity = initial_equity
+
+    # Fetch live data from Alpaca
+    alpaca_df = _fetch_alpaca_history(LIVE_ENTRY_DATE)
+
+    if alpaca_df is not None and not alpaca_df.empty:
+        # Filter Alpaca data to start from entry date
+        alpaca_df = alpaca_df[alpaca_df["Date"] >= entry_ts].copy()
+        alpaca_df["is_live"] = True
+
+        # Scale Alpaca equity to continue from historical equity
+        if not alpaca_df.empty:
+            alpaca_start_equity = alpaca_df["equity"].iloc[0]
+            if alpaca_start_equity > 0:
+                scale_factor = last_historical_equity / alpaca_start_equity
+                alpaca_df["equity"] = alpaca_df["equity"] * scale_factor
+
+        # Combine historical and live data
+        df = pd.concat([historical_df, alpaca_df], ignore_index=True)
+    else:
+        # No Alpaca data available, use only historical
+        df = historical_df.copy()
 
     # Filter by date range
     if start_date:
@@ -45,17 +121,9 @@ def compute_equity_curve(
     if df.empty:
         return {"data": [], "yearly_stats": [], "entry_date": LIVE_ENTRY_DATE.isoformat()}
 
-    # Compute equity curve
-    df["daily_return"] = df["Portfolio_Return"]
-    df["equity"] = (1 + df["daily_return"]).cumprod() * initial_equity
-
     # Compute drawdown
     df["peak"] = df["equity"].cummax()
     df["drawdown_pct"] = (df["peak"] - df["equity"]) / df["peak"] * 100
-
-    # Mark live vs backtest
-    entry_ts = pd.Timestamp(LIVE_ENTRY_DATE)
-    df["is_live"] = df["Date"] >= entry_ts
 
     # Build data points
     data = []

@@ -30,6 +30,16 @@ const SP500_RETURNS: Record<number, number> = {
 	2025: 27.6, // YTD estimate
 };
 
+// S&P 500 yearly max drawdowns (hardcoded for comparison)
+const SP500_DRAWDOWNS: Record<number, number> = {
+	2020: 33.9,
+	2021: 5.2,
+	2022: 25.4,
+	2023: 10.3,
+	2024: 8.5,
+	2025: 19.3, // YTD
+};
+
 // Theme colors
 const getChartColors = (isDark: boolean) => ({
 	background: isDark ? "#131629" : "#ffffff",
@@ -43,9 +53,11 @@ const getChartColors = (isDark: boolean) => ({
 	yearLineColor: isDark ? "rgba(100, 100, 100, 0.5)" : "rgba(0, 0, 0, 0.3)",
 });
 
-// Convert date string to Unix timestamp
-function dateToTimestamp(dateStr: string): number {
-	return Math.floor(new Date(dateStr).getTime() / 1000);
+// Use string date format - this creates ordinal data without calendar gaps
+// When there are gaps in the data (like Oct to Dec), this prevents
+// the chart from creating empty space for the missing months
+function dateToTime(dateStr: string): Time {
+	return dateStr as Time;
 }
 
 // Format currency for axis
@@ -104,8 +116,18 @@ export function EquityChart({
 	const resizeStartY = useRef(0);
 	const resizeStartHeight = useRef(0);
 
-	// Parse entry date timestamp
-	const entryTimestamp = useMemo(() => dateToTimestamp(entryDate), [entryDate]);
+	// Find entry point from data (more reliable than parsing date separately)
+	const entryDataPoint = useMemo(() => {
+		return data.find(d => d.date === entryDate);
+	}, [data, entryDate]);
+
+	const entryTimestamp = useMemo(() => {
+		// Use actual data point timestamp if available, otherwise parse the date
+		if (entryDataPoint) {
+			return dateToTime(entryDataPoint.date);
+		}
+		return dateToTime(entryDate);
+	}, [entryDataPoint, entryDate]);
 
 	// Get first trading day of each year for divider lines
 	const yearBoundaries = useMemo(() => {
@@ -115,7 +137,7 @@ export function EquityChart({
 			const firstDay = data.find(d => new Date(d.date).getFullYear() === year);
 			return {
 				year,
-				timestamp: firstDay ? dateToTimestamp(firstDay.date) : dateToTimestamp(`${year}-01-02`),
+				timestamp: firstDay ? dateToTime(firstDay.date) : dateToTime(`${year}-01-02`),
 			};
 		});
 	}, [data]);
@@ -254,7 +276,7 @@ export function EquityChart({
 
 		sortedYears.forEach(([year, info]) => {
 			// Get x position for end of year
-			const endTs = dateToTimestamp(info.endDate) as Time;
+			const endTs = dateToTime(info.endDate) as Time;
 			const xCoord = equityChart.timeScale().timeToCoordinate(endTs);
 
 			if (xCoord === null || xCoord < 80 || xCoord > containerWidth - 80) return;
@@ -263,7 +285,7 @@ export function EquityChart({
 			const equityYCoord = equitySeries.priceToCoordinate(info.endEquity);
 
 			// Get y position on drawdown chart for max DD
-			const maxDDTs = dateToTimestamp(info.maxDDDate) as Time;
+			const maxDDTs = dateToTime(info.maxDDDate) as Time;
 			const drawdownXCoord = drawdownChart.timeScale().timeToCoordinate(maxDDTs);
 			const drawdownYCoord = drawdownSeries.priceToCoordinate(info.maxDD);
 
@@ -286,6 +308,16 @@ export function EquityChart({
 		// Second pass: calculate smart box positions to avoid overlap
 		const boxPositions = calculateBoxPositions(rawAnnotations, equityHeight);
 
+		// Debug: log annotation positions
+		if (rawAnnotations.length > 0) {
+			console.table(rawAnnotations.map(a => ({
+				year: a.year,
+				equityY: Math.round(a.equityY),
+				endEquity: Math.round(a.endEquity),
+				x: Math.round(a.x),
+			})));
+		}
+
 		// Create final annotations with calculated box positions
 		const newAnnotations: AnnotationPosition[] = rawAnnotations.map(ann => ({
 			...ann,
@@ -294,12 +326,30 @@ export function EquityChart({
 
 		setAnnotations(newAnnotations);
 
-		// Update entry annotation
-		const entryXCoord = equityChart.timeScale().timeToCoordinate(entryTimestamp as Time);
-		if (entryXCoord !== null && entryXCoord > 50 && entryXCoord < containerWidth - 50) {
-			setEntryAnnotation({ x: entryXCoord, visible: true });
+		// Update entry annotation - use logical index for precise positioning
+		const firstLiveIndex = data.findIndex(d => d.is_live);
+		if (firstLiveIndex !== -1) {
+			// Use logical index (array position) instead of timestamp for reliability
+			const entryXCoord = equityChart.timeScale().logicalToCoordinate(firstLiveIndex);
+			if (entryXCoord !== null && entryXCoord > 20 && entryXCoord < containerWidth - 10) {
+				setEntryAnnotation({ x: entryXCoord, visible: true });
+			} else {
+				// Entry point exists but is outside visible range
+				setEntryAnnotation({ x: 0, visible: false });
+			}
 		} else {
-			setEntryAnnotation({ x: 0, visible: false });
+			// No live data yet - try to find entry date in data
+			const entryIndex = data.findIndex(d => d.date === entryDate);
+			if (entryIndex !== -1) {
+				const entryXCoord = equityChart.timeScale().logicalToCoordinate(entryIndex);
+				if (entryXCoord !== null && entryXCoord > 20 && entryXCoord < containerWidth - 10) {
+					setEntryAnnotation({ x: entryXCoord, visible: true });
+				} else {
+					setEntryAnnotation({ x: 0, visible: false });
+				}
+			} else {
+				setEntryAnnotation({ x: 0, visible: false });
+			}
 		}
 
 		// Update year divider positions (at start of each year)
@@ -328,7 +378,7 @@ export function EquityChart({
 				leftX = thisYearDivider.x;
 			} else if (i > 0) {
 				// For first year (no divider), use chart start
-				const firstDataTs = dateToTimestamp(data[0].date) as Time;
+				const firstDataTs = dateToTime(data[0].date) as Time;
 				const firstX = equityChart.timeScale().timeToCoordinate(firstDataTs);
 				if (firstX !== null) leftX = firstX;
 			}
@@ -339,7 +389,7 @@ export function EquityChart({
 				rightX = nextYearDivider.x;
 			} else {
 				// For last year, use last data point
-				const lastDataTs = dateToTimestamp(data[data.length - 1].date) as Time;
+				const lastDataTs = dateToTime(data[data.length - 1].date) as Time;
 				const lastX = equityChart.timeScale().timeToCoordinate(lastDataTs);
 				if (lastX !== null) rightX = lastX;
 			}
@@ -351,7 +401,7 @@ export function EquityChart({
 			}
 		}
 		setYearLabels(newLabels);
-	}, [yearData, entryTimestamp, equityHeight, calculateBoxPositions, yearBoundaries, data]);
+	}, [yearData, entryTimestamp, entryDate, equityHeight, calculateBoxPositions, yearBoundaries, data]);
 
 	// Resize handlers
 	const handleResizeMouseDown = useCallback(
@@ -439,6 +489,17 @@ export function EquityChart({
 			crosshair: {
 				mode: CrosshairMode.Normal,
 			},
+			localization: {
+				// Custom time formatter for crosshair tooltip - parse our YYYY-MM-DD strings correctly
+				timeFormatter: (time: unknown) => {
+					if (typeof time === 'string' && time.match(/^\d{4}-\d{2}-\d{2}$/)) {
+						const [year, month, day] = time.split('-').map(Number);
+						const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+						return `${day} ${months[month - 1]} '${String(year).slice(-2)}`;
+					}
+					return String(time);
+				},
+			},
 		});
 
 		equityChartRef.current = chart;
@@ -491,7 +552,7 @@ export function EquityChart({
 
 		// Single equity line (use lighter color, like the image)
 		const allData = data.map((d) => ({
-			time: dateToTimestamp(d.date) as Time,
+			time: dateToTime(d.date) as Time,
 			value: d.equity,
 		}));
 
@@ -505,8 +566,11 @@ export function EquityChart({
 		equitySeries.setData(allData);
 		equitySeriesRef.current = equitySeries;
 
-		chart.timeScale().fitContent();
-		setTimeout(updateAnnotations, 100);
+		// Force the chart to show ALL data points including December 2025
+		chart.timeScale().setVisibleLogicalRange({ from: 0, to: data.length - 1 });
+		setTimeout(updateAnnotations, 200);
+		// Double-check after chart settles
+		setTimeout(updateAnnotations, 500);
 	}, [data, isDark, updateAnnotations]);
 
 	// Initialize drawdown chart
@@ -544,6 +608,17 @@ export function EquityChart({
 			},
 			crosshair: {
 				mode: CrosshairMode.Normal,
+			},
+			localization: {
+				// Custom time formatter for crosshair tooltip - parse our YYYY-MM-DD strings correctly
+				timeFormatter: (time: unknown) => {
+					if (typeof time === 'string' && time.match(/^\d{4}-\d{2}-\d{2}$/)) {
+						const [year, month, day] = time.split('-').map(Number);
+						const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+						return `${day} ${months[month - 1]} '${String(year).slice(-2)}`;
+					}
+					return String(time);
+				},
 			},
 		});
 
@@ -602,14 +677,17 @@ export function EquityChart({
 
 		drawdownSeries.setData(
 			data.map((d) => ({
-				time: dateToTimestamp(d.date) as Time,
+				time: dateToTime(d.date) as Time,
 				value: d.drawdown_pct, // Positive values, inverted scale
 			}))
 		);
 		drawdownSeriesRef.current = drawdownSeries;
 
-		chart.timeScale().fitContent();
-		setTimeout(updateAnnotations, 100);
+		// Force the chart to show ALL data points including December 2025
+		chart.timeScale().setVisibleLogicalRange({ from: 0, to: data.length - 1 });
+		setTimeout(updateAnnotations, 200);
+		// Double-check after chart settles
+		setTimeout(updateAnnotations, 500);
 	}, [data, isDark, updateAnnotations]);
 
 	// Sync drawdown chart time scale with equity chart
@@ -664,9 +742,52 @@ export function EquityChart({
 
 	return (
 		<div className="space-y-2">
-			{/* Header */}
-			<div className="bg-amber-100 dark:bg-amber-900/30 px-4 py-2 rounded-lg">
-				<h2 className="text-lg font-bold text-center">{systemName}</h2>
+			{/* Yearly Performance Cards - above chart, spanning each segment */}
+			<div className="relative h-16 border-x bg-card">
+				{annotations.map((ann) => {
+					// Calculate segment boundaries
+					const allYears = annotations.map(a => a.year).sort((a, b) => a - b);
+					const yearIdx = allYears.indexOf(ann.year);
+
+					// Left edge: previous year's divider or chart start
+					const leftX = yearIdx === 0 ? 50 : (yearDividers.find(d => d.year === ann.year)?.x ?? 50);
+
+					// Right edge: next year's divider or chart end
+					const nextYear = allYears[yearIdx + 1];
+					const rightX = nextYear ? (yearDividers.find(d => d.year === nextYear)?.x ?? 0) : (equityContainerRef.current?.clientWidth ?? 800) - 10;
+
+					const width = Math.max(80, rightX - leftX - 4);
+
+					return (
+						<div
+							key={`perf-card-${ann.year}`}
+							className="absolute top-1 bottom-1 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"
+							style={{
+								left: leftX + 2,
+								width: width,
+							}}
+						>
+							<div className="flex items-center gap-3 px-2">
+								<div className="text-center">
+									<div className={`font-bold text-sm ${ann.profitPct >= 0 ? "text-green-600" : "text-red-600"}`}>
+										{ann.profitPct >= 0 ? "+" : ""}{ann.profitPct.toFixed(1)}%
+									</div>
+									<div className="text-red-500 font-medium text-xs">-{ann.maxDD.toFixed(1)}%</div>
+								</div>
+								{SP500_RETURNS[ann.year] !== undefined && (
+									<div className="text-center border-l border-gray-300 dark:border-gray-600 pl-2">
+										<div className={`font-bold text-sm ${SP500_RETURNS[ann.year] >= 0 ? "text-blue-500" : "text-red-600"}`}>
+											{SP500_RETURNS[ann.year] >= 0 ? "+" : ""}{SP500_RETURNS[ann.year].toFixed(1)}%
+										</div>
+										<div className="text-red-500 font-medium text-xs">
+											-{SP500_DRAWDOWNS[ann.year]?.toFixed(1) ?? "?"}%
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					);
+				})}
 			</div>
 
 			{/* Equity Chart with overlays */}
@@ -682,101 +803,24 @@ export function EquityChart({
 					style={{ height: equityHeight }}
 				/>
 
-				{/* Year annotation boxes on equity chart */}
-				{annotations.map((ann) => {
-					const boxTop = ann.boxY;
-					const boxBottom = boxTop + 58; // box height
-					const arrowStart = boxBottom;
-					const arrowEnd = ann.equityY;
-					const arrowLength = arrowEnd - arrowStart;
-
-					return (
-						<div key={`equity-${ann.year}`} className="absolute pointer-events-none" style={{ left: 0, top: 0, right: 0, bottom: 0 }}>
-							{/* Annotation box with hover fade-in */}
-							<div
-								className="absolute bg-white dark:bg-gray-800 border-2 border-gray-400 dark:border-gray-500 rounded px-2 py-1 shadow-md opacity-40 hover:opacity-100 transition-opacity duration-150 pointer-events-auto cursor-default"
-								style={{
-									left: ann.x - 55,
-									top: boxTop,
-									zIndex: 10,
-								}}
-							>
-								<div className="font-bold text-center text-sm text-gray-900 dark:text-gray-100 mb-1">{ann.year}</div>
-								<div className="flex gap-3">
-									{/* Strategy returns */}
-									<div className="text-center">
-										<div className={`font-bold text-sm ${ann.profitPct >= 0 ? "text-green-600" : "text-red-600"}`}>
-											{ann.profitPct >= 0 ? "+" : ""}{ann.profitPct.toFixed(1)}%
-										</div>
-										<div className="text-red-500 font-medium text-xs">-{ann.maxDD.toFixed(1)}%</div>
-									</div>
-									{/* SPY returns */}
-									{SP500_RETURNS[ann.year] !== undefined && (
-										<div className="text-center border-l border-gray-300 dark:border-gray-600 pl-3">
-											<div className={`font-bold text-sm ${SP500_RETURNS[ann.year] >= 0 ? "text-blue-500" : "text-red-600"}`}>
-												{SP500_RETURNS[ann.year] >= 0 ? "+" : ""}{SP500_RETURNS[ann.year].toFixed(1)}%
-											</div>
-											<div className="text-gray-500 dark:text-gray-400 text-xs">SPY</div>
-										</div>
-									)}
-								</div>
-							</div>
-
-							{/* Arrow line from box to curve */}
-							{arrowLength > 15 && (
-								<>
-									{/* Vertical line */}
-									<div
-										className="absolute w-0.5 bg-green-500"
-										style={{
-											left: ann.x,
-											top: arrowStart,
-											height: arrowLength - 8,
-										}}
-									/>
-									{/* Arrow head pointing down to curve */}
-									<svg
-										className="absolute"
-										width="12"
-										height="10"
-										style={{
-											left: ann.x - 5,
-											top: arrowEnd - 10,
-										}}
-									>
-										<polygon points="6,10 0,0 12,0" fill="#22c55e" />
-									</svg>
-									{/* Profit label next to arrow */}
-									<div
-										className="absolute text-green-600 font-bold text-sm whitespace-nowrap"
-										style={{
-											left: ann.x + 8,
-											top: (arrowStart + arrowEnd) / 2 - 8,
-										}}
-									>
-										{ann.profitPct >= 0 ? "+" : ""}{ann.profitPct.toFixed(1)}%
-									</div>
-								</>
-							)}
-						</div>
-					);
-				})}
-
 				{/* Entry line annotation */}
 				{entryAnnotation?.visible && (
 					<>
 						<div
-							className="absolute top-0 w-1 bg-green-500"
+							className="absolute top-0 bg-green-500"
 							style={{
 								left: entryAnnotation.x,
 								height: equityHeight,
+								width: 3,
+								zIndex: 15,
 							}}
 						/>
 						<div
-							className="absolute bg-green-500 text-white font-bold text-xs px-2 py-0.5 rounded"
+							className="absolute bg-green-500 text-white font-bold text-sm px-2 py-1 rounded shadow-md"
 							style={{
-								left: entryAnnotation.x + 6,
-								top: 8,
+								left: entryAnnotation.x + 8,
+								top: 10,
+								zIndex: 15,
 							}}
 						>
 							Entry
@@ -814,6 +858,33 @@ export function EquityChart({
 						{label.year}
 					</div>
 				))}
+
+				{/* On-chart percentage annotations with arrows */}
+				{annotations.map((ann) => {
+					// Position just above the equity line at the year end point
+					// ann.equityY is the pixel Y coordinate of the line at that point
+					const annotationY = Math.max(20, ann.equityY - 2);
+					return (
+						<div
+							key={`chart-pct-${ann.year}`}
+							className="absolute pointer-events-none flex flex-col items-center"
+							style={{
+								left: ann.x,
+								top: annotationY,
+								transform: 'translate(-50%, -100%)',
+								zIndex: 10,
+							}}
+						>
+							<span className="text-green-500 font-bold text-xs italic whitespace-nowrap">
+								{ann.profitPct >= 0 ? "" : "-"}{Math.abs(ann.profitPct).toFixed(1)}%
+							</span>
+							{/* Arrow pointing down to the line */}
+							<svg width="8" height="5" viewBox="0 0 8 5">
+								<polygon points="4,5 0,0 8,0" fill="#22c55e" />
+							</svg>
+						</div>
+					);
+				})}
 
 				{/* Resize handle */}
 				<div

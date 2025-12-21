@@ -19,11 +19,11 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 EQUITY_DATA_PATH = os.getenv("EQUITY_DATA_PATH") or str(DATA_DIR / "equity_data.csv")
 
 # Live trading entry date
-_entry_date_str = os.getenv("LIVE_ENTRY_DATE", "2024-12-18")
+_entry_date_str = os.getenv("LIVE_ENTRY_DATE", "2025-12-18")
 try:
     LIVE_ENTRY_DATE = date.fromisoformat(_entry_date_str)
 except ValueError:
-    LIVE_ENTRY_DATE = date(2024, 12, 18)
+    LIVE_ENTRY_DATE = date(2025, 12, 18)
 
 
 def has_alpaca_credentials() -> bool:

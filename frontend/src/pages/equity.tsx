@@ -49,23 +49,26 @@ export function EquityPage() {
 
 	return (
 		<div className="space-y-4">
-			{/* Alpaca Status */}
-			<div className="flex items-center gap-2">
-				<span className="text-sm text-muted-foreground">Alpaca API:</span>
-				{alpacaStatus?.connected ? (
-					<Badge variant="default" className="bg-green-600">
-						Connected
-					</Badge>
-				) : alpacaStatus?.configured ? (
-					<Badge variant="secondary">Configured (Not Connected)</Badge>
-				) : (
-					<Badge variant="outline">Not Configured</Badge>
-				)}
-				{alpacaStatus?.account_status && (
-					<span className="text-sm text-muted-foreground">
-						Status: {alpacaStatus.account_status}
-					</span>
-				)}
+			{/* Header with System Name and Alpaca Status */}
+			<div className="flex items-center justify-between bg-indigo-100 dark:bg-indigo-900/40 px-4 py-2 rounded-lg">
+				<h2 className="text-lg font-bold">{data.system_name}</h2>
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground">Alpaca API:</span>
+					{alpacaStatus?.connected ? (
+						<Badge variant="default" className="bg-green-600">
+							Connected
+						</Badge>
+					) : alpacaStatus?.configured ? (
+						<Badge variant="secondary">Configured (Not Connected)</Badge>
+					) : (
+						<Badge variant="outline">Not Configured</Badge>
+					)}
+					{alpacaStatus?.account_status && (
+						<span className="text-sm text-muted-foreground">
+							Status: {alpacaStatus.account_status}
+						</span>
+					)}
+				</div>
 			</div>
 
 			{/* Equity Chart */}
