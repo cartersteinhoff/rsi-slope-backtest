@@ -12,24 +12,28 @@ interface EquityChartApexProps {
 	drawdownHeight?: number;
 }
 
-// S&P 500 yearly returns (hardcoded for comparison)
+// S&P 500 yearly returns (source: macrotrends.net)
 const SP500_RETURNS: Record<number, number> = {
-	2020: 18.4,
-	2021: 28.7,
-	2022: -18.1,
-	2023: 26.3,
-	2024: 25.0,
-	2025: 27.6,
+	2018: -6.24,
+	2019: 28.88,
+	2020: 16.26,
+	2021: 26.89,
+	2022: -19.44,
+	2023: 24.23,
+	2024: 23.31,
+	2025: 16.2,
 };
 
-// S&P 500 yearly max drawdowns
+// S&P 500 yearly max drawdowns (peak-to-trough within each year)
 const SP500_DRAWDOWNS: Record<number, number> = {
+	2018: 19.8,
+	2019: 6.8,
 	2020: 33.9,
 	2021: 5.2,
 	2022: 25.4,
 	2023: 10.3,
 	2024: 8.5,
-	2025: 19.3,
+	2025: 10.0,
 };
 
 // Theme colors
@@ -186,13 +190,14 @@ export function EquityChartApex({
 			profitPct: number;
 		}> = new Map();
 
+		// First pass: collect end equity and max DD for each year
 		for (const point of data) {
 			const year = new Date(point.date).getFullYear();
 			const existing = years.get(year);
 
 			if (!existing) {
 				years.set(year, {
-					startEquity: point.equity,
+					startEquity: 0, // Will be set in second pass
 					endEquity: point.equity,
 					endDate: point.date,
 					maxDD: point.drawdown_pct,
@@ -209,10 +214,30 @@ export function EquityChartApex({
 			}
 		}
 
+		// Second pass: set start equity from previous year's end equity
+		const sortedYears = [...years.keys()].sort((a, b) => a - b);
+		for (let i = 0; i < sortedYears.length; i++) {
+			const year = sortedYears[i];
+			const info = years.get(year)!;
+			
+			if (i === 0) {
+				// First year: use the first data point of that year as start
+				const firstPoint = data.find(d => new Date(d.date).getFullYear() === year);
+				info.startEquity = firstPoint?.equity ?? info.endEquity;
+			} else {
+				// Subsequent years: use previous year's end equity as start
+				const prevYear = sortedYears[i - 1];
+				info.startEquity = years.get(prevYear)!.endEquity;
+			}
+		}
+
 		// Calculate profit percentages
 		years.forEach((info) => {
 			info.profitPct = ((info.endEquity - info.startEquity) / info.startEquity) * 100;
 		});
+
+		// Exclude 2019 from display (partial year)
+		years.delete(2019);
 
 		return years;
 	}, [data]);
@@ -508,11 +533,6 @@ export function EquityChartApex({
 		return { startEquity, endEquity, totalReturn, maxDrawdown };
 	}, [data]);
 
-	// Get sorted years for the performance cards
-	const _sortedYears = useMemo(() => {
-		return [...yearlyData.entries()].sort((a, b) => a[0] - b[0]);
-	}, [yearlyData]);
-
 	return (
 		<div className="space-y-2">
 			{/* Equity Chart */}
@@ -538,14 +558,22 @@ export function EquityChartApex({
 							return;
 						}
 
-						// Find which year segment we're in
-						const years = [...yearlyData.keys()].sort((a, b) => a - b);
-						const segmentWidth = chartWidth / years.length;
-						const segmentIndex = Math.floor((x - chartLeft) / segmentWidth);
-						const year = years[Math.min(segmentIndex, years.length - 1)];
+						// Calculate timestamp based on position within chart
+						const minTimestamp = equitySeriesData[0]?.x ?? 0;
+						const maxTimestamp = equitySeriesData[equitySeriesData.length - 1]?.x ?? 0;
+						const positionRatio = (x - chartLeft) / chartWidth;
+						const hoveredTimestamp = minTimestamp + positionRatio * (maxTimestamp - minTimestamp);
+						
+						// Find which year this timestamp belongs to
+						const hoveredDate = new Date(hoveredTimestamp);
+						const year = hoveredDate.getFullYear();
 
-						setHoveredYear(year);
-						setHoverPosition({ x: e.clientX, y: e.clientY });
+						if (yearlyData.has(year)) {
+							setHoveredYear(year);
+							setHoverPosition({ x: e.clientX, y: e.clientY });
+						} else {
+							setHoveredYear(null);
+						}
 					}}
 					onMouseLeave={() => {
 						setHoveredYear(null);
@@ -563,7 +591,7 @@ export function EquityChartApex({
 			{/* Hover Tooltip */}
 			{hoveredYear !== null && hoverPosition && yearlyData.has(hoveredYear) && (
 				<div
-					className="fixed bg-gray-900 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
+					className="fixed bg-slate-800 border border-slate-600 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
 					style={{
 						left: hoverPosition.x + 15,
 						top: hoverPosition.y - 100,
@@ -577,16 +605,20 @@ export function EquityChartApex({
 						<div className={yearlyData.get(hoveredYear)!.profitPct >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
 							{yearlyData.get(hoveredYear)!.profitPct >= 0 ? "+" : ""}{yearlyData.get(hoveredYear)!.profitPct.toFixed(1)}%
 						</div>
-						<div className="text-gray-400">Max DD:</div>
-						<div className="text-red-400 font-semibold">-{yearlyData.get(hoveredYear)!.maxDD.toFixed(1)}%</div>
 						{SP500_RETURNS[hoveredYear] !== undefined && (
 							<>
 								<div className="text-gray-400">SPY:</div>
 								<div className={SP500_RETURNS[hoveredYear] >= 0 ? "text-blue-400 font-semibold" : "text-red-400 font-semibold"}>
 									{SP500_RETURNS[hoveredYear] >= 0 ? "+" : ""}{SP500_RETURNS[hoveredYear].toFixed(1)}%
 								</div>
+							</>
+						)}
+						<div className="text-gray-400">Max DD:</div>
+						<div className="text-red-400 font-semibold">-{yearlyData.get(hoveredYear)!.maxDD.toFixed(1)}%</div>
+						{SP500_DRAWDOWNS[hoveredYear] !== undefined && (
+							<>
 								<div className="text-gray-400">SPY DD:</div>
-								<div className="text-red-400 font-semibold">-{SP500_DRAWDOWNS[hoveredYear]?.toFixed(1) ?? "?"}%</div>
+								<div className="text-red-400 font-semibold">-{SP500_DRAWDOWNS[hoveredYear].toFixed(1)}%</div>
 							</>
 						)}
 					</div>

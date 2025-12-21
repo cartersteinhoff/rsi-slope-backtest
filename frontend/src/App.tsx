@@ -44,7 +44,7 @@ function AppContent() {
 							<TabsTrigger value="overview">Overall Results</TabsTrigger>
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>
 							<TabsTrigger value="branches">Branch Overviews</TabsTrigger>
-							<TabsTrigger value="equity-apex">Equity (Apex)</TabsTrigger>
+							<TabsTrigger value="equity-apex">Equity Slopes</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="individual" className="mt-0">

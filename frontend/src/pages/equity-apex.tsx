@@ -51,7 +51,7 @@ export function EquityApexPage() {
 		<div className="space-y-4">
 			{/* Header with System Name and Alpaca Status */}
 			<div className="flex items-center justify-between bg-purple-100 dark:bg-purple-900/40 px-4 py-2 rounded-lg">
-				<h2 className="text-lg font-bold">{data.system_name} (ApexCharts)</h2>
+				<h2 className="text-lg font-bold">Alpaca Fund</h2>
 				<div className="flex items-center gap-2">
 					<span className="text-sm text-muted-foreground">Alpaca API:</span>
 					{alpacaStatus?.connected ? (

@@ -162,7 +162,7 @@ def compute_equity_curve(
         "data": data,
         "yearly_stats": yearly_stats,
         "entry_date": LIVE_ENTRY_DATE.isoformat(),
-        "system_name": "Alpaca + VIX System",
+        "system_name": "Alpaca Fund",
     }
 
 
