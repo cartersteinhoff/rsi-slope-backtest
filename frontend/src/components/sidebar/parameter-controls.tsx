@@ -44,7 +44,7 @@ export function ParameterControls() {
 				<>
 					<div className="space-y-1">
 						<div className="flex justify-between">
-							<Label htmlFor="slope-window" className="text-sm">Slope Window</Label>
+							<Label htmlFor="slope-window" className="text-base">Slope Look Back Period</Label>
 							<span className="text-base text-muted-foreground">{slopeWindow}</span>
 						</div>
 						<Slider
@@ -59,7 +59,7 @@ export function ParameterControls() {
 
 					<div className="space-y-1">
 						<div className="flex justify-between">
-							<Label htmlFor="pos-threshold" className="text-base">Positive Threshold</Label>
+							<Label htmlFor="pos-threshold" className="text-base">Positive Angle</Label>
 							<span className="text-base text-muted-foreground">
 								{posThreshold.toFixed(1)}%
 							</span>
@@ -76,7 +76,7 @@ export function ParameterControls() {
 
 					<div className="space-y-1">
 						<div className="flex justify-between">
-							<Label htmlFor="neg-threshold" className="text-base">Negative Threshold</Label>
+							<Label htmlFor="neg-threshold" className="text-base">Negative Angle</Label>
 							<span className="text-base text-muted-foreground">
 								{negThreshold.toFixed(1)}%
 							</span>

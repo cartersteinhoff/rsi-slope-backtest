@@ -308,16 +308,6 @@ export function EquityChart({
 		// Second pass: calculate smart box positions to avoid overlap
 		const boxPositions = calculateBoxPositions(rawAnnotations, equityHeight);
 
-		// Debug: log annotation positions
-		if (rawAnnotations.length > 0) {
-			console.table(rawAnnotations.map(a => ({
-				year: a.year,
-				equityY: Math.round(a.equityY),
-				endEquity: Math.round(a.endEquity),
-				x: Math.round(a.x),
-			})));
-		}
-
 		// Create final annotations with calculated box positions
 		const newAnnotations: AnnotationPosition[] = rawAnnotations.map(ann => ({
 			...ann,
@@ -326,23 +316,25 @@ export function EquityChart({
 
 		setAnnotations(newAnnotations);
 
-		// Update entry annotation - use logical index for precise positioning
+		// Update entry annotation - manually calculate X position since timeToCoordinate/logicalToCoordinate
+		// return incorrect values. Calculate based on data index ratio and chart dimensions.
 		const firstLiveIndex = data.findIndex(d => d.is_live);
-		if (firstLiveIndex !== -1) {
-			// Use logical index (array position) instead of timestamp for reliability
-			const entryXCoord = equityChart.timeScale().logicalToCoordinate(firstLiveIndex);
-			if (entryXCoord !== null && entryXCoord > 20 && entryXCoord < containerWidth - 10) {
-				setEntryAnnotation({ x: entryXCoord, visible: true });
-			} else {
-				// Entry point exists but is outside visible range
-				setEntryAnnotation({ x: 0, visible: false });
-			}
-		} else {
-			// No live data yet - try to find entry date in data
-			const entryIndex = data.findIndex(d => d.date === entryDate);
-			if (entryIndex !== -1) {
-				const entryXCoord = equityChart.timeScale().logicalToCoordinate(entryIndex);
-				if (entryXCoord !== null && entryXCoord > 20 && entryXCoord < containerWidth - 10) {
+		const entryIndex = firstLiveIndex !== -1 ? firstLiveIndex : data.findIndex(d => d.date === entryDate);
+
+		if (entryIndex !== -1 && data.length > 1) {
+			// Get the x coordinates of the first and last data points using the chart's coordinate system
+			const firstTime = dateToTime(data[0].date) as Time;
+			const lastTime = dateToTime(data[data.length - 1].date) as Time;
+			const firstX = equityChart.timeScale().timeToCoordinate(firstTime);
+			const lastX = equityChart.timeScale().timeToCoordinate(lastTime);
+
+			if (firstX !== null && lastX !== null && lastX > firstX) {
+				// Calculate the entry X position by interpolating between first and last
+				const dataRatio = entryIndex / (data.length - 1);
+				const chartWidth = lastX - firstX;
+				const entryXCoord = firstX + (dataRatio * chartWidth);
+
+				if (entryXCoord > 20 && entryXCoord < containerWidth - 10) {
 					setEntryAnnotation({ x: entryXCoord, visible: true });
 				} else {
 					setEntryAnnotation({ x: 0, visible: false });
@@ -350,6 +342,8 @@ export function EquityChart({
 			} else {
 				setEntryAnnotation({ x: 0, visible: false });
 			}
+		} else {
+			setEntryAnnotation({ x: 0, visible: false });
 		}
 
 		// Update year divider positions (at start of each year)
