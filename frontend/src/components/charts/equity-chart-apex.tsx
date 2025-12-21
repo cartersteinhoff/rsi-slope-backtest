@@ -572,7 +572,7 @@ export function EquityChartApex({
 					<div className="text-center font-bold text-lg mb-2 border-b border-gray-600 pb-1">
 						{hoveredYear}
 					</div>
-					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm whitespace-nowrap">
 						<div className="text-gray-400">System:</div>
 						<div className={yearlyData.get(hoveredYear)!.profitPct >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
 							{yearlyData.get(hoveredYear)!.profitPct >= 0 ? "+" : ""}{yearlyData.get(hoveredYear)!.profitPct.toFixed(1)}%
