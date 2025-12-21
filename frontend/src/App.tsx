@@ -5,7 +5,6 @@ import { IndividualPage } from "@/pages/individual";
 import { OverviewPage } from "@/pages/overview";
 import { ReportsPage } from "@/pages/reports";
 import { BranchOverviewsPage } from "@/pages/branch-overviews";
-import { EquityPage } from "@/pages/equity";
 import { EquityApexPage } from "@/pages/equity-apex";
 import { useParametersStore } from "@/stores/parameters-store";
 
@@ -31,7 +30,12 @@ function AppContent() {
 						value={activeTab}
 						onValueChange={(value) =>
 							setActiveTab(
-								value as "individual" | "overview" | "reports" | "branches" | "equity" | "equity-apex",
+								value as
+									| "individual"
+									| "overview"
+									| "reports"
+									| "branches"
+									| "equity-apex",
 							)
 						}
 					>
@@ -40,7 +44,6 @@ function AppContent() {
 							<TabsTrigger value="overview">Overall Results</TabsTrigger>
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>
 							<TabsTrigger value="branches">Branch Overviews</TabsTrigger>
-							<TabsTrigger value="equity">Equity Chart</TabsTrigger>
 							<TabsTrigger value="equity-apex">Equity (Apex)</TabsTrigger>
 						</TabsList>
 
@@ -58,10 +61,6 @@ function AppContent() {
 
 						<TabsContent value="branches" className="mt-0">
 							<BranchOverviewsPage />
-						</TabsContent>
-
-						<TabsContent value="equity" className="mt-0">
-							<EquityPage />
 						</TabsContent>
 
 						<TabsContent value="equity-apex" className="mt-0">

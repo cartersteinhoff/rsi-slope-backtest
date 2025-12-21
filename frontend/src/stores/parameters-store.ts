@@ -49,7 +49,7 @@ interface ParametersState {
 
 	// UI state
 	showYearlyBreakdown: boolean;
-	activeTab: "individual" | "overview" | "reports" | "branches" | "equity" | "equity-apex";
+	activeTab: "individual" | "overview" | "reports" | "branches" | "equity-apex";
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
 	uiZoom: number;
@@ -77,7 +77,7 @@ interface ParametersState {
 	setAlphaSystem: (value: AlphaSystem) => void;
 	setShowYearlyBreakdown: (value: boolean) => void;
 	setActiveTab: (
-		value: "individual" | "overview" | "reports" | "branches" | "equity" | "equity-apex",
+		value: "individual" | "overview" | "reports" | "branches" | "equity-apex",
 	) => void;
 	setSidebarCollapsed: (value: boolean) => void;
 	setSidebarWidth: (value: number) => void;
@@ -162,6 +162,13 @@ export const useParametersStore = create<ParametersState>()(
 		{
 			name: "trading-app-state",
 			storage: createJSONStorage(() => localStorage),
+			migrate: (state) => {
+				const activeTab = (state as { activeTab?: string })?.activeTab;
+				if (activeTab === "equity") {
+					return { ...(state as object), activeTab: "equity-apex" };
+				}
+				return state;
+			},
 			// Only persist specific keys (not actions)
 			partialize: (state) => ({
 				slopeWindow: state.slopeWindow,
@@ -181,7 +188,7 @@ export const useParametersStore = create<ParametersState>()(
 				chartTimeRange: state.chartTimeRange,
 			}),
 			// Version for migrations if schema changes
-			version: 1,
+			version: 2,
 		},
 	),
 );
