@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import tickers, branches, analysis, equity
+from routers import tickers, branches, analysis, equity, alpaca_vix_equity
 
 app = FastAPI(
     title="Advanced RSI + Slope Filter Backtesting API",
@@ -26,6 +26,7 @@ app.include_router(tickers.router, prefix="/api", tags=["tickers"])
 app.include_router(branches.router, prefix="/api", tags=["branches"])
 app.include_router(analysis.router, prefix="/api", tags=["analysis"])
 app.include_router(equity.router, prefix="/api", tags=["equity"])
+app.include_router(alpaca_vix_equity.router, prefix="/api", tags=["alpaca-vix-equity"])
 
 
 @app.get("/")

@@ -10,6 +10,7 @@ interface EquityChartApexProps {
 	systemName: string;
 	equityHeight?: number;
 	drawdownHeight?: number;
+	showEntry?: boolean;
 }
 
 // S&P 500 yearly returns (source: macrotrends.net)
@@ -42,6 +43,7 @@ const getChartColors = (isDark: boolean) => ({
 	textColor: isDark ? "#9ca3af" : "#71717a",
 	gridColor: isDark ? "rgba(75, 85, 99, 0.3)" : "rgba(0, 0, 0, 0.1)",
 	equityColor: isDark ? "#4C92C3" : "#3b82f6",
+	spyColor: isDark ? "#22c55e" : "#16a34a", // Green for SPY
 	drawdownColor: "rgba(239, 68, 68, 0.5)",
 	drawdownLine: "rgba(239, 68, 68, 0.8)",
 	entryLineColor: "#22c55e",
@@ -60,7 +62,8 @@ export function EquityChartApex({
 	yearlyStats: _yearlyStats,
 	entryDate,
 	equityHeight: initialEquityHeight = 450,
-	drawdownHeight: initialDrawdownHeight = 350,
+	drawdownHeight: initialDrawdownHeight = 275,
+	showEntry = true,
 }: EquityChartApexProps) {
 	void _yearlyStats;
 
@@ -75,8 +78,22 @@ export function EquityChartApex({
 	const isResizing = useRef<false | "equity" | "drawdown">(false);
 	const resizeStartY = useRef(0);
 	const resizeStartHeight = useRef(0);
-	const [hoveredYear, setHoveredYear] = useState<number | null>(null);
-	const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+	const [showStaticTooltips, setShowStaticTooltips] = useState(true);
+	const [showSpy, setShowSpy] = useState(true);
+	const chartContainerRef = useRef<HTMLDivElement>(null);
+	const [containerWidth, setContainerWidth] = useState(0);
+
+	// Track container width for tooltip positioning
+	useEffect(() => {
+		const updateWidth = () => {
+			if (chartContainerRef.current) {
+				setContainerWidth(chartContainerRef.current.offsetWidth);
+			}
+		};
+		updateWidth();
+		window.addEventListener('resize', updateWidth);
+		return () => window.removeEventListener('resize', updateWidth);
+	}, []);
 
 	// Listen for theme changes
 	useEffect(() => {
@@ -154,6 +171,16 @@ export function EquityChartApex({
 			x: new Date(d.date).getTime(),
 			y: d.equity,
 		}));
+	}, [filteredData]);
+
+	// SPY equity series (only points with valid spy_equity)
+	const spySeriesData = useMemo(() => {
+		return filteredData
+			.filter((d) => d.spy_equity != null)
+			.map((d) => ({
+				x: new Date(d.date).getTime(),
+				y: d.spy_equity!,
+			}));
 	}, [filteredData]);
 
 	const drawdownSeriesData = useMemo(() => {
@@ -234,37 +261,83 @@ export function EquityChartApex({
 		return years;
 	}, [data]);
 
+	// Calculate static tooltip positions for each year
+	const staticTooltipPositions = useMemo(() => {
+		if (!filteredData.length || !containerWidth) return new Map<number, { xPixel: number; position: 'top' | 'bottom' }>();
+
+		const minEquity = Math.min(...filteredData.map(d => d.equity));
+		const maxEquity = Math.max(...filteredData.map(d => d.equity));
+		const equityRange = maxEquity - minEquity;
+		const midEquity = minEquity + equityRange / 2;
+
+		const positions = new Map<number, { xPixel: number; position: 'top' | 'bottom' }>();
+
+		// Chart margins (ApexCharts defaults)
+		const leftMargin = 62; // y-axis labels
+		const rightMargin = 12;
+		const plotWidth = containerWidth - leftMargin - rightMargin;
+
+		// X-axis range (matches chart config)
+		const xAxisMin = new Date("2020-01-01").getTime();
+		const xAxisMax = new Date(filteredData[filteredData.length - 1].date).getTime();
+		const xAxisRange = xAxisMax - xAxisMin;
+
+		yearlyData.forEach((info, year) => {
+			// Calculate X position (midpoint of year segment)
+			const startTime = new Date(info.startDate).getTime();
+			const endTime = new Date(info.endDate).getTime();
+			const midTime = startTime + (endTime - startTime) / 2;
+
+			// Convert timestamp to pixel position
+			const xRatio = (midTime - xAxisMin) / xAxisRange;
+			const xPixel = leftMargin + (xRatio * plotWidth);
+
+			// Calculate average equity for this year to determine position
+			const yearData = filteredData.filter(d => new Date(d.date).getFullYear() === year);
+			const avgEquity = yearData.reduce((sum, d) => sum + d.equity, 0) / yearData.length;
+
+			// If equity is below 50%, tooltip at top; if 50%+ tooltip at bottom
+			const position = avgEquity < midEquity ? 'top' : 'bottom';
+
+			positions.set(year, { xPixel, position });
+		});
+
+		return positions;
+	}, [filteredData, yearlyData, containerWidth]);
+
 	const colors = getChartColors(isDark);
 
 	// Build x-axis annotations for entry and year dividers
 	const xAxisAnnotations = useMemo(() => {
 		const annotations: NonNullable<ApexOptions["annotations"]>["xaxis"] = [];
 
-		// Entry line annotation
-		const entryDateFormatted = new Date(entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-		annotations.push({
-			x: entryTimestamp,
-			borderColor: colors.entryLineColor,
-			borderWidth: 3,
-			label: {
-				text: `Entry\n${entryDateFormatted}`,
+		// Entry line annotation (conditional)
+		if (showEntry) {
+			const entryDateFormatted = new Date(entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+			annotations.push({
+				x: entryTimestamp,
 				borderColor: colors.entryLineColor,
-				style: {
-					color: "#fff",
-					background: colors.entryLineColor,
-					fontSize: "12px",
-					fontWeight: "bold",
-					padding: {
-						left: 8,
-						right: 8,
-						top: 4,
-						bottom: 4,
+				borderWidth: 3,
+				label: {
+					text: `Entry\n${entryDateFormatted}`,
+					borderColor: colors.entryLineColor,
+					style: {
+						color: "#fff",
+						background: colors.entryLineColor,
+						fontSize: "12px",
+						fontWeight: "bold",
+						padding: {
+							left: 8,
+							right: 8,
+							top: 4,
+							bottom: 4,
+						},
 					},
+					position: "top",
+					offsetY: 150,
 				},
-				position: "top",
-				offsetY: 150,
-			},
-		});
+			});
+		}
 
 		// Year divider lines
 		yearBoundaries.forEach((boundary) => {
@@ -277,7 +350,7 @@ export function EquityChartApex({
 		});
 
 		return annotations;
-	}, [entryTimestamp, entryDate, yearBoundaries, colors]);
+	}, [entryTimestamp, entryDate, yearBoundaries, colors, showEntry]);
 
 	// Year labels positioned in the middle of each year segment
 	const yearLabelAnnotations = useMemo(() => {
@@ -342,7 +415,7 @@ export function EquityChartApex({
 					},
 				});
 			} else {
-				// Current year (no next divider) - position at end of data
+				// Current year (no next divider) - position at end of data, offset left to avoid cutoff
 				points.push({
 					x: new Date(info.endDate).getTime(),
 					y: info.endEquity,
@@ -359,7 +432,7 @@ export function EquityChartApex({
 							fontWeight: "bold",
 						},
 						offsetY: -15,
-						offsetX: 0,
+						offsetX: -20,
 					},
 				});
 			}
@@ -429,7 +502,7 @@ export function EquityChartApex({
 				curve: "straight",
 				width: 2,
 			},
-			colors: [colors.equityColor],
+			colors: [colors.equityColor, colors.spyColor],
 			xaxis: {
 				type: "datetime",
 				min: new Date("2020-01-01").getTime(),
@@ -465,6 +538,8 @@ export function EquityChartApex({
 				position: "front",
 			},
 			tooltip: {
+				shared: true,
+				intersect: false,
 				theme: isDark ? "dark" : "light",
 				x: {
 					format: "dd MMM yyyy",
@@ -578,50 +653,95 @@ export function EquityChartApex({
 	return (
 		<div className="space-y-2">
 			{/* Equity Chart */}
-			<div className="relative border bg-card rounded">
+			<div className="relative border bg-card rounded" ref={chartContainerRef}>
+				{/* Toggle buttons - positioned to align with ApexCharts toolbar */}
+				<div className="absolute top-[3px] right-[140px] z-30 flex gap-1.5">
+					{/* SPY toggle */}
+					{spySeriesData.length > 0 && (
+						<button
+							onClick={() => setShowSpy(!showSpy)}
+							className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
+								showSpy
+									? 'bg-green-600 text-white border-green-600'
+									: 'bg-transparent text-slate-400 border-slate-500 hover:border-slate-400'
+							}`}
+							title={showSpy ? "Hide SPY" : "Show SPY"}
+						>
+							SPY
+						</button>
+					)}
+					{/* Yearly stats toggle */}
+					<button
+						onClick={() => setShowStaticTooltips(!showStaticTooltips)}
+						className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
+							showStaticTooltips
+								? 'bg-blue-500 text-white border-blue-500'
+								: 'bg-transparent text-slate-400 border-slate-500 hover:border-slate-400'
+						}`}
+						title={showStaticTooltips ? "Hide yearly stats" : "Show yearly stats"}
+					>
+						Yearly Stats
+					</button>
+				</div>
+
 				<Chart
 					options={equityOptions}
-					series={[{ name: "Equity", data: equitySeriesData }]}
+					series={[
+						{ name: "System", data: equitySeriesData },
+						...(showSpy && spySeriesData.length > 0
+							? [{ name: "SPY", data: spySeriesData }]
+							: []),
+					]}
 					type="line"
 					height={equityHeight}
 				/>
-				{/* Invisible hover overlay to detect year segments */}
-				<div
-					className="absolute inset-0 z-10"
-					style={{ pointerEvents: "all" }}
-					onMouseMove={(e) => {
-						const rect = e.currentTarget.getBoundingClientRect();
-						const x = e.clientX - rect.left;
-						const chartWidth = rect.width - 60; // Account for margins
-						const chartLeft = 45; // Left margin
 
-						if (x < chartLeft || x > chartLeft + chartWidth) {
-							setHoveredYear(null);
-							return;
-						}
+				{/* Static Tooltips */}
+				{showStaticTooltips && Array.from(yearlyData.entries()).map(([year, info]) => {
+					const pos = staticTooltipPositions.get(year);
+					if (!pos) return null;
 
-						// Calculate timestamp based on position within chart
-						const minTimestamp = equitySeriesData[0]?.x ?? 0;
-						const maxTimestamp = equitySeriesData[equitySeriesData.length - 1]?.x ?? 0;
-						const positionRatio = (x - chartLeft) / chartWidth;
-						const hoveredTimestamp = minTimestamp + positionRatio * (maxTimestamp - minTimestamp);
-						
-						// Find which year this timestamp belongs to
-						const hoveredDate = new Date(hoveredTimestamp);
-						const year = hoveredDate.getFullYear();
-
-						if (yearlyData.has(year)) {
-							setHoveredYear(year);
-							setHoverPosition({ x: e.clientX, y: e.clientY });
-						} else {
-							setHoveredYear(null);
-						}
-					}}
-					onMouseLeave={() => {
-						setHoveredYear(null);
-						setHoverPosition(null);
-					}}
-				/>
+					return (
+						<div
+							key={year}
+							className="absolute z-20 bg-slate-800/95 border border-slate-600 text-white rounded-lg shadow-xl p-2 pointer-events-none text-xs"
+							style={{
+								left: `${pos.xPixel}px`,
+								transform: 'translateX(-50%)',
+								...(pos.position === 'top'
+									? { top: '40px' }
+									: { bottom: '40px' }
+								),
+							}}
+						>
+							<div className="text-center font-bold text-sm mb-1 border-b border-gray-600 pb-1">
+								{year}
+							</div>
+							<div className="grid grid-cols-2 gap-x-3 gap-y-0.5 whitespace-nowrap">
+								<div className="text-gray-400">System:</div>
+								<div className={info.profitPct >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
+									{info.profitPct >= 0 ? "+" : ""}{info.profitPct.toFixed(1)}%
+								</div>
+								{SP500_RETURNS[year] !== undefined && (
+									<>
+										<div className="text-gray-400">SPY:</div>
+										<div className={SP500_RETURNS[year] >= 0 ? "text-blue-400 font-semibold" : "text-red-400 font-semibold"}>
+											{SP500_RETURNS[year] >= 0 ? "+" : ""}{SP500_RETURNS[year].toFixed(1)}%
+										</div>
+									</>
+								)}
+								<div className="text-gray-400">Max DD:</div>
+								<div className="text-red-400 font-semibold">-{info.maxDD.toFixed(1)}%</div>
+								{SP500_DRAWDOWNS[year] !== undefined && (
+									<>
+										<div className="text-gray-400">SPY DD:</div>
+										<div className="text-red-400 font-semibold">-{SP500_DRAWDOWNS[year].toFixed(1)}%</div>
+									</>
+								)}
+							</div>
+						</div>
+					);
+				})}
 				{/* Resize handle */}
 				<div
 					className="absolute -bottom-1 left-0 right-0 h-3 cursor-ns-resize hover:bg-primary/30 z-20 transition-colors"
@@ -629,43 +749,6 @@ export function EquityChartApex({
 					onDoubleClick={() => handleResizeDoubleClick("equity")}
 				/>
 			</div>
-
-			{/* Hover Tooltip */}
-			{hoveredYear !== null && hoverPosition && yearlyData.has(hoveredYear) && (
-				<div
-					className="fixed bg-slate-800 border border-slate-600 text-white rounded-lg shadow-xl p-3 z-50 pointer-events-none"
-					style={{
-						left: hoverPosition.x + 15,
-						top: hoverPosition.y - 100,
-					}}
-				>
-					<div className="text-center font-bold text-lg mb-2 border-b border-gray-600 pb-1">
-						{hoveredYear}
-					</div>
-					<div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm whitespace-nowrap">
-						<div className="text-gray-400">System:</div>
-						<div className={yearlyData.get(hoveredYear)!.profitPct >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
-							{yearlyData.get(hoveredYear)!.profitPct >= 0 ? "+" : ""}{yearlyData.get(hoveredYear)!.profitPct.toFixed(1)}%
-						</div>
-						{SP500_RETURNS[hoveredYear] !== undefined && (
-							<>
-								<div className="text-gray-400">SPY:</div>
-								<div className={SP500_RETURNS[hoveredYear] >= 0 ? "text-blue-400 font-semibold" : "text-red-400 font-semibold"}>
-									{SP500_RETURNS[hoveredYear] >= 0 ? "+" : ""}{SP500_RETURNS[hoveredYear].toFixed(1)}%
-								</div>
-							</>
-						)}
-						<div className="text-gray-400">Max DD:</div>
-						<div className="text-red-400 font-semibold">-{yearlyData.get(hoveredYear)!.maxDD.toFixed(1)}%</div>
-						{SP500_DRAWDOWNS[hoveredYear] !== undefined && (
-							<>
-								<div className="text-gray-400">SPY DD:</div>
-								<div className="text-red-400 font-semibold">-{SP500_DRAWDOWNS[hoveredYear].toFixed(1)}%</div>
-							</>
-						)}
-					</div>
-				</div>
-			)}
 
 			{/* Drawdown Chart */}
 			<div className="relative border bg-card rounded">

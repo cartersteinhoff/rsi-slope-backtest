@@ -109,6 +109,7 @@ class EquityDataPoint(BaseModel):
     daily_return: float  # Percentage
     drawdown_pct: float
     is_live: bool  # True if from live trading, False if backtest
+    spy_equity: Optional[float] = None  # SPY equity for comparison
 
 
 class EquityYearlyStats(BaseModel):

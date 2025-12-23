@@ -117,6 +117,7 @@ export interface EquityDataPoint {
 	daily_return: number; // Percentage
 	drawdown_pct: number;
 	is_live: boolean; // True if from live trading, False if backtest
+	spy_equity?: number; // SPY equity for comparison
 }
 
 export interface EquityYearlyStats {

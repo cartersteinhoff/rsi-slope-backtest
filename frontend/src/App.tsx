@@ -6,6 +6,7 @@ import { OverviewPage } from "@/pages/overview";
 import { ReportsPage } from "@/pages/reports";
 import { BranchOverviewsPage } from "@/pages/branch-overviews";
 import { EquityApexPage } from "@/pages/equity-apex";
+import { AlpacaVixEquityPage } from "@/pages/alpaca-vix-equity";
 import { useParametersStore } from "@/stores/parameters-store";
 
 const queryClient = new QueryClient({
@@ -35,7 +36,8 @@ function AppContent() {
 									| "overview"
 									| "reports"
 									| "branches"
-									| "equity-apex",
+									| "equity-apex"
+									| "alpaca-vix-equity",
 							)
 						}
 					>
@@ -45,6 +47,7 @@ function AppContent() {
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>
 							<TabsTrigger value="branches">Branch Overviews</TabsTrigger>
 							<TabsTrigger value="equity-apex">Equity Slopes</TabsTrigger>
+							<TabsTrigger value="alpaca-vix-equity">Alpaca + VIX</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="individual" className="mt-0">
@@ -65,6 +68,10 @@ function AppContent() {
 
 						<TabsContent value="equity-apex" className="mt-0">
 							<EquityApexPage />
+						</TabsContent>
+
+						<TabsContent value="alpaca-vix-equity" className="mt-0">
+							<AlpacaVixEquityPage />
 						</TabsContent>
 					</Tabs>
 				</div>

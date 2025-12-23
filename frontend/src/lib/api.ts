@@ -115,3 +115,20 @@ export async function getAlpacaStatus(): Promise<{
 }> {
 	return fetchJson(`${API_BASE}/equity/alpaca/status`);
 }
+
+// Alpaca + VIX ETF System API
+
+export async function getAlpacaVixEquityCurve(
+	params?: EquityCurveParams,
+): Promise<EquityCurveResponse> {
+	const searchParams = new URLSearchParams();
+	if (params?.start_date) searchParams.set("start_date", params.start_date);
+	if (params?.end_date) searchParams.set("end_date", params.end_date);
+	if (params?.initial_equity)
+		searchParams.set("initial_equity", params.initial_equity.toString());
+
+	const query = searchParams.toString();
+	return fetchJson<EquityCurveResponse>(
+		`${API_BASE}/alpaca-vix-equity/curve${query ? `?${query}` : ""}`,
+	);
+}
