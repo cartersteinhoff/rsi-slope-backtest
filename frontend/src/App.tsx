@@ -5,7 +5,6 @@ import { IndividualPage } from "@/pages/individual";
 import { OverviewPage } from "@/pages/overview";
 import { ReportsPage } from "@/pages/reports";
 import { BranchOverviewsPage } from "@/pages/branch-overviews";
-import { EquityApexPage } from "@/pages/equity-apex";
 import { AlpacaVixEquityPage } from "@/pages/alpaca-vix-equity";
 import { useParametersStore } from "@/stores/parameters-store";
 
@@ -36,7 +35,6 @@ function AppContent() {
 									| "overview"
 									| "reports"
 									| "branches"
-									| "equity-apex"
 									| "alpaca-vix-equity",
 							)
 						}
@@ -46,8 +44,7 @@ function AppContent() {
 							<TabsTrigger value="overview">Overall Results</TabsTrigger>
 							<TabsTrigger value="reports">Detailed Reports</TabsTrigger>
 							<TabsTrigger value="branches">Branch Overviews</TabsTrigger>
-							<TabsTrigger value="equity-apex">Equity Slopes</TabsTrigger>
-							<TabsTrigger value="alpaca-vix-equity">Alpaca + VIX</TabsTrigger>
+							<TabsTrigger value="alpaca-vix-equity">Equity Slope</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="individual" className="mt-0">
@@ -64,10 +61,6 @@ function AppContent() {
 
 						<TabsContent value="branches" className="mt-0">
 							<BranchOverviewsPage />
-						</TabsContent>
-
-						<TabsContent value="equity-apex" className="mt-0">
-							<EquityApexPage />
 						</TabsContent>
 
 						<TabsContent value="alpaca-vix-equity" className="mt-0">

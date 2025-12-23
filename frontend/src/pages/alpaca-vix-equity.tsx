@@ -48,7 +48,7 @@ export function AlpacaVixEquityPage() {
 	return (
 		<div className="space-y-4">
 			{/* Header with System Name */}
-			<div className="flex items-center justify-center bg-orange-100 dark:bg-orange-900/40 px-4 py-2 rounded-lg">
+			<div className="flex items-center justify-center bg-blue-100 dark:bg-blue-900/40 px-4 py-2 rounded-lg">
 				<h2 className="text-base font-bold">Alpaca + VIX ETF System</h2>
 			</div>
 
