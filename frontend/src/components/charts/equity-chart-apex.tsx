@@ -511,6 +511,17 @@ export function EquityChartApex({
 				},
 				axisBorder: { show: false },
 				axisTicks: { show: false },
+				crosshairs: {
+					show: true,
+					stroke: {
+						color: colors.gridColor,
+						width: 1,
+						dashArray: 3,
+					},
+				},
+				tooltip: {
+					enabled: false,
+				},
 			},
 			yaxis: {
 				title: {
@@ -704,7 +715,7 @@ export function EquityChartApex({
 					return (
 						<div
 							key={year}
-							className="absolute z-20 bg-slate-800/95 border border-slate-600 text-white rounded-lg shadow-xl p-2 pointer-events-none text-xs"
+							className="absolute z-20 bg-slate-800/95 hover:bg-slate-800/30 border border-slate-600 hover:border-slate-600/50 text-white rounded-lg shadow-xl p-2 text-xs transition-all duration-200"
 							style={{
 								left: `${pos.xPixel}px`,
 								transform: 'translateX(-50%)',

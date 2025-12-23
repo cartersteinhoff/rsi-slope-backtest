@@ -1,12 +1,10 @@
-import { useEquityCurve, useAlpacaStatus } from "@/hooks/useEquityData";
+import { useEquityCurve } from "@/hooks/useEquityData";
 import { EquityChartApex } from "@/components/charts/equity-chart-apex";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 
 export function EquityApexPage() {
 	const { data, isLoading, error } = useEquityCurve();
-	const { data: alpacaStatus } = useAlpacaStatus();
 
 	if (isLoading) {
 		return (
@@ -49,26 +47,9 @@ export function EquityApexPage() {
 
 	return (
 		<div className="space-y-4">
-			{/* Header with System Name and Alpaca Status */}
-			<div className="flex items-center justify-between bg-purple-100 dark:bg-purple-900/40 px-4 py-2 rounded-lg">
-				<h2 className="text-lg font-bold">Alpaca ETF Fund</h2>
-				<div className="flex items-center gap-2">
-					<span className="text-sm text-muted-foreground">Alpaca API:</span>
-					{alpacaStatus?.connected ? (
-						<Badge variant="default" className="bg-green-600">
-							Connected
-						</Badge>
-					) : alpacaStatus?.configured ? (
-						<Badge variant="secondary">Configured (Not Connected)</Badge>
-					) : (
-						<Badge variant="outline">Not Configured</Badge>
-					)}
-					{alpacaStatus?.account_status && (
-						<span className="text-sm text-muted-foreground">
-							Status: {alpacaStatus.account_status}
-						</span>
-					)}
-				</div>
+			{/* Header with System Name */}
+			<div className="flex items-center justify-center bg-gradient-to-r from-blue-950 to-blue-900 dark:from-blue-950 dark:to-blue-950 px-4 py-2 rounded-lg">
+				<h2 className="text-base font-bold text-white">Alpaca ETF System</h2>
 			</div>
 
 			{/* Equity Chart */}

@@ -9,6 +9,9 @@ from functools import lru_cache
 
 from .config import EQUITY_DATA_PATH, LIVE_ENTRY_DATE, has_alpaca_credentials
 
+# SPY prices data path
+SPY_PRICES_PATH = Path(__file__).parent.parent / "data" / "spy_prices.csv"
+
 
 @lru_cache(maxsize=1)
 def _load_equity_csv() -> pd.DataFrame:
@@ -18,6 +21,15 @@ def _load_equity_csv() -> pd.DataFrame:
     df = df[["Date", "Portfolio_Return"]].copy()
     df["Date"] = pd.to_datetime(df["Date"])
     df = df.sort_values("Date").reset_index(drop=True)
+    return df
+
+
+@lru_cache(maxsize=1)
+def _load_spy_prices() -> pd.DataFrame:
+    """Load and cache SPY price data."""
+    df = pd.read_csv(SPY_PRICES_PATH)
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date").reset_index(drop=True)
     return df
 
 
@@ -71,12 +83,13 @@ def compute_equity_curve(
 
     Returns:
         dict with keys:
-        - data: list of {date, equity, daily_return, drawdown_pct, is_live}
+        - data: list of {date, equity, daily_return, drawdown_pct, is_live, spy_equity}
         - yearly_stats: list of {year, profit_pct, max_drawdown_pct, start_equity, end_equity}
         - entry_date: ISO date string when live trading started
     """
     # Load CSV data (historical backtest)
     csv_df = _load_equity_csv().copy()
+    spy_df = _load_spy_prices().copy()
 
     entry_ts = pd.Timestamp(LIVE_ENTRY_DATE)
 
@@ -126,15 +139,38 @@ def compute_equity_curve(
     df["peak"] = df["equity"].cummax()
     df["drawdown_pct"] = (df["peak"] - df["equity"]) / df["peak"] * 100
 
+    # Prepare SPY data for merging
+    df["date_str"] = df["Date"].dt.strftime("%Y-%m-%d")
+    spy_df["date_str"] = spy_df["date"].dt.strftime("%Y-%m-%d")
+    spy_dict = dict(zip(spy_df["date_str"], spy_df["close"]))
+
+    # Find first date where both system and SPY have data
+    first_spy_price = None
+    first_system_equity = None
+    for _, row in df.iterrows():
+        date_str = row["date_str"]
+        if date_str in spy_dict:
+            first_spy_price = spy_dict[date_str]
+            first_system_equity = row["equity"]
+            break
+
     # Build data points
     data = []
     for _, row in df.iterrows():
+        date_str = row["date_str"]
+        spy_price = spy_dict.get(date_str)
+        spy_equity = None
+        if spy_price is not None and first_spy_price is not None and first_system_equity is not None:
+            # Normalize SPY to start at same equity as system on first overlapping date
+            spy_equity = round((spy_price / first_spy_price) * first_system_equity, 2)
+
         data.append({
             "date": row["Date"].strftime("%Y-%m-%d"),
             "equity": round(row["equity"], 2),
             "daily_return": round(row["daily_return"] * 100, 4),  # Convert to percentage
             "drawdown_pct": round(row["drawdown_pct"], 2),
             "is_live": bool(row["is_live"]),
+            "spy_equity": spy_equity,
         })
 
     # Compute yearly stats
