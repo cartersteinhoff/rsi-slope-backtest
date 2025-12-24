@@ -80,7 +80,7 @@ export function EquityChartApex({
 	const resizeStartHeight = useRef(0);
 	const [showStaticTooltips, setShowStaticTooltips] = useState(true);
 	const [showSpy, setShowSpy] = useState(true);
-	const [showHoverTooltip, setShowHoverTooltip] = useState(true);
+	const [showHoverTooltip, setShowHoverTooltip] = useState(false);
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
 
