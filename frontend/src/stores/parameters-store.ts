@@ -41,6 +41,9 @@ interface ParametersState {
 	negThreshold: number;
 	signalType: SignalType;
 
+	// Parameter toggles (enabled/disabled)
+	slopeParametersExpanded: boolean;
+
 	// Selection state
 	selectedTicker: string;
 	selectedBranch: string;
@@ -71,6 +74,7 @@ interface ParametersState {
 	setPosThreshold: (value: number) => void;
 	setNegThreshold: (value: number) => void;
 	setSignalType: (value: SignalType) => void;
+	setSlopeParametersExpanded: (value: boolean) => void;
 	setSelectedTicker: (value: string) => void;
 	setSelectedBranch: (value: string) => void;
 	setSelectionMode: (value: "ticker" | "all") => void;
@@ -98,6 +102,7 @@ const defaultParameters = {
 	posThreshold: 5.0,
 	negThreshold: 0.0,
 	signalType: "RSI" as SignalType,
+	slopeParametersExpanded: false,
 };
 
 export const useParametersStore = create<ParametersState>()(
@@ -136,6 +141,7 @@ export const useParametersStore = create<ParametersState>()(
 			setPosThreshold: (value) => set({ posThreshold: value }),
 			setNegThreshold: (value) => set({ negThreshold: value }),
 			setSignalType: (value) => set({ signalType: value }),
+			setSlopeParametersExpanded: (value) => set({ slopeParametersExpanded: value }),
 			setSelectedTicker: (value) => set({ selectedTicker: value }),
 			setSelectedBranch: (value) => set({ selectedBranch: value }),
 			setSelectionMode: (value) => set({ selectionMode: value }),
@@ -175,6 +181,7 @@ export const useParametersStore = create<ParametersState>()(
 				posThreshold: state.posThreshold,
 				negThreshold: state.negThreshold,
 				signalType: state.signalType,
+				slopeParametersExpanded: state.slopeParametersExpanded,
 				selectedTicker: state.selectedTicker,
 				selectedBranch: state.selectedBranch,
 				selectionMode: state.selectionMode,

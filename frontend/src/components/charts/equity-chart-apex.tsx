@@ -61,7 +61,7 @@ export function EquityChartApex({
 	data,
 	yearlyStats: _yearlyStats,
 	entryDate,
-	equityHeight: initialEquityHeight = 450,
+	equityHeight: initialEquityHeight = 550,
 	drawdownHeight: initialDrawdownHeight = 275,
 	showEntry = true,
 }: EquityChartApexProps) {
@@ -80,6 +80,7 @@ export function EquityChartApex({
 	const resizeStartHeight = useRef(0);
 	const [showStaticTooltips, setShowStaticTooltips] = useState(true);
 	const [showSpy, setShowSpy] = useState(true);
+	const [showHoverTooltip, setShowHoverTooltip] = useState(true);
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const [containerWidth, setContainerWidth] = useState(0);
 
@@ -173,14 +174,17 @@ export function EquityChartApex({
 		}));
 	}, [filteredData]);
 
-	// SPY equity series (only points with valid spy_equity)
+	// SPY equity series (all points, null where no spy_equity)
 	const spySeriesData = useMemo(() => {
-		return filteredData
-			.filter((d) => d.spy_equity != null)
-			.map((d) => ({
-				x: new Date(d.date).getTime(),
-				y: d.spy_equity!,
-			}));
+		return filteredData.map((d) => ({
+			x: new Date(d.date).getTime(),
+			y: d.spy_equity ?? null,
+		}));
+	}, [filteredData]);
+
+	// Check if we have any SPY data
+	const hasSpyData = useMemo(() => {
+		return filteredData.some((d) => d.spy_equity != null);
 	}, [filteredData]);
 
 	const drawdownSeriesData = useMemo(() => {
@@ -549,6 +553,7 @@ export function EquityChartApex({
 				position: "front",
 			},
 			tooltip: {
+				enabled: showHoverTooltip,
 				shared: true,
 				intersect: false,
 				theme: isDark ? "dark" : "light",
@@ -566,7 +571,7 @@ export function EquityChartApex({
 				show: false,
 			},
 		}),
-		[equityHeight, colors, xAxisAnnotations, equityPointAnnotations, yearLabelAnnotations, isDark]
+		[equityHeight, colors, xAxisAnnotations, equityPointAnnotations, yearLabelAnnotations, isDark, showHoverTooltip]
 	);
 
 	// Drawdown chart options
@@ -668,7 +673,7 @@ export function EquityChartApex({
 				{/* Toggle buttons - positioned to align with ApexCharts toolbar */}
 				<div className="absolute top-[3px] right-[140px] z-30 flex gap-1.5">
 					{/* SPY toggle */}
-					{spySeriesData.length > 0 && (
+					{hasSpyData && (
 						<button
 							onClick={() => setShowSpy(!showSpy)}
 							className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
@@ -693,13 +698,25 @@ export function EquityChartApex({
 					>
 						Yearly Stats
 					</button>
+					{/* Crosshair toggle */}
+					<button
+						onClick={() => setShowHoverTooltip(!showHoverTooltip)}
+						className={`px-2 py-1 rounded text-xs font-medium border transition-colors ${
+							showHoverTooltip
+								? 'bg-purple-500 text-white border-purple-500'
+								: 'bg-transparent text-slate-400 border-slate-500 hover:border-slate-400'
+						}`}
+						title={showHoverTooltip ? "Hide crosshair" : "Show crosshair"}
+					>
+						Crosshair
+					</button>
 				</div>
 
 				<Chart
 					options={equityOptions}
 					series={[
 						{ name: "System", data: equitySeriesData },
-						...(showSpy && spySeriesData.length > 0
+						...(showSpy && hasSpyData
 							? [{ name: "SPY", data: spySeriesData }]
 							: []),
 					]}

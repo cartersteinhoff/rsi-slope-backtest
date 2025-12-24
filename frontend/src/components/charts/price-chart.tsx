@@ -356,8 +356,8 @@ export function PriceChart({ data, height: initialHeight = 600, signalType = "Bo
 				borderVisible: false,
 				timeVisible: true,
 				secondsVisible: false,
-				fixLeftEdge: true,
-				fixRightEdge: true,
+				fixLeftEdge: false,
+				fixRightEdge: false,
 			},
 			handleScroll: {
 				mouseWheel: true,
