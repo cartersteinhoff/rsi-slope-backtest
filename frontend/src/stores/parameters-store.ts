@@ -49,7 +49,7 @@ interface ParametersState {
 
 	// UI state
 	showYearlyBreakdown: boolean;
-	activeTab: "individual" | "overview" | "reports" | "branches" | "equity-apex" | "alpaca-vix-equity";
+	activeTab: "individual" | "overview" | "reports" | "branches" | "equity-apex";
 	sidebarCollapsed: boolean;
 	sidebarWidth: number;
 	uiZoom: number;
@@ -77,7 +77,7 @@ interface ParametersState {
 	setAlphaSystem: (value: AlphaSystem) => void;
 	setShowYearlyBreakdown: (value: boolean) => void;
 	setActiveTab: (
-		value: "individual" | "overview" | "reports" | "branches" | "equity-apex" | "alpaca-vix-equity",
+		value: "individual" | "overview" | "reports" | "branches" | "equity-apex",
 	) => void;
 	setSidebarCollapsed: (value: boolean) => void;
 	setSidebarWidth: (value: number) => void;
@@ -164,8 +164,8 @@ export const useParametersStore = create<ParametersState>()(
 			storage: createJSONStorage(() => localStorage),
 			migrate: (state) => {
 				const activeTab = (state as { activeTab?: string })?.activeTab;
-				if (activeTab === "equity") {
-					return { ...(state as object), activeTab: "alpaca-vix-equity" };
+				if (activeTab === "equity" || activeTab === "alpaca-vix-equity") {
+					return { ...(state as object), activeTab: "equity-apex" };
 				}
 				return state;
 			},
