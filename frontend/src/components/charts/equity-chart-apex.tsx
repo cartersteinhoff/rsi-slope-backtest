@@ -61,7 +61,7 @@ export function EquityChartApex({
 	data,
 	yearlyStats: _yearlyStats,
 	entryDate,
-	equityHeight: initialEquityHeight = 550,
+	equityHeight: initialEquityHeight = 565,
 	drawdownHeight: initialDrawdownHeight = 275,
 	showEntry = true,
 }: EquityChartApexProps) {
